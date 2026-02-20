@@ -1,0 +1,21 @@
+name: Keep-Alive Pinger
+
+on:
+  schedule:
+    # Runs every 10 minutes
+    - cron: '*/10 * * * *'
+  workflow_dispatch: # Allows manual trigger
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Randomize and Ping
+        run: |
+          # Generate a random delay between 0 and 600 seconds (10 minutes)
+          DELAY=$(( RANDOM % 600 ))
+          echo "Sleeping for $DELAY seconds before pinging..."
+          sleep $DELAY
+          
+          # Ping the Render server
+          curl -I https://silq.onrender.com
