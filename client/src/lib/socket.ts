@@ -2,7 +2,7 @@
 
 import { io, Socket } from 'socket.io-client';
 
-const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3001';
+const SERVER_URL = (process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3001').replace(/\/$/, '');
 
 let socket: Socket | null = null;
 
@@ -16,6 +16,7 @@ export function getSocket(): Socket {
             reconnectionDelayMax: 5000,
             timeout: 30000,
             transports: ['websocket', 'polling'],
+            withCredentials: true,
         });
     }
     return socket;

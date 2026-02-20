@@ -22,19 +22,17 @@ const allowedOrigins = [
 
 // Middleware
 app.use(cors({
-    origin: (origin, callback) => {
-        // Allow requests with no origin (like mobile apps or curl)
-        if (!origin) return callback(null, true);
-        if (allowedOrigins.indexOf(origin) !== -1 || origin.includes('vercel.app')) {
-            callback(null, true);
-        } else {
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
+    origin: true, // Reflect request origin
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true,
 }));
 app.use(express.json());
+
+// Log middleware for debugging connections
+app.use((req, res, next) => {
+    console.log(`[HTTP] ${req.method} ${req.url} - Origin: ${req.headers.origin}`);
+    next();
+});
 
 // REST routes
 app.get('/', (req, res) => {
@@ -45,18 +43,13 @@ app.use('/api', taskRoutes);
 // Socket.IO setup
 const io = new SocketIOServer(server, {
     cors: {
-        origin: (origin, callback) => {
-            if (!origin || allowedOrigins.indexOf(origin) !== -1 || origin.includes('vercel.app')) {
-                callback(null, true);
-            } else {
-                callback(new Error('Not allowed by CORS'));
-            }
-        },
+        origin: true, // Reflect request origin
         methods: ['GET', 'POST'],
         credentials: true,
     },
     pingTimeout: 60000,
     pingInterval: 25000,
+    transports: ['websocket', 'polling']
 });
 
 // Setup WebSocket event handlers
