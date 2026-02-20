@@ -78,7 +78,6 @@ main {
 }
 
 /* Toast overrides */
-[data-sonner-toaster],
-.Toastify__toast-container {
+.hot-toast-override {
   z-index: 10000 !important;
 }
