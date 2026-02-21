@@ -7,12 +7,16 @@ export declare const createTaskSchema: z.ZodObject<{
         IN_PROGRESS: "IN_PROGRESS";
         DONE: "DONE";
     }>>>;
+    userId: z.ZodString;
+    username: z.ZodString;
 }, z.core.$strip>;
 export declare const updateTaskSchema: z.ZodObject<{
     id: z.ZodString;
     title: z.ZodOptional<z.ZodString>;
     description: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     version: z.ZodNumber;
+    userId: z.ZodString;
+    username: z.ZodString;
 }, z.core.$strip>;
 export declare const moveTaskSchema: z.ZodObject<{
     id: z.ZodString;
@@ -23,10 +27,14 @@ export declare const moveTaskSchema: z.ZodObject<{
     }>;
     orderKey: z.ZodString;
     version: z.ZodNumber;
+    userId: z.ZodString;
+    username: z.ZodString;
 }, z.core.$strip>;
 export declare const deleteTaskSchema: z.ZodObject<{
     id: z.ZodString;
     version: z.ZodNumber;
+    userId: z.ZodString;
+    username: z.ZodString;
 }, z.core.$strip>;
 export declare const lockTaskSchema: z.ZodObject<{
     id: z.ZodString;

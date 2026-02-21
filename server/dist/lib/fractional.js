@@ -57,14 +57,18 @@ function generateKeyBetween(a, b) {
  */
 function generateKeyBefore(key) {
     const firstCharIdx = charToIndex(key[0]);
-    if (firstCharIdx > 1) {
+    if (firstCharIdx > 0) {
         // We can use a character halfway between '0' and this character
+        // or just the previous character if they are adjacent
         return indexToChar(Math.floor(firstCharIdx / 2));
     }
-    // First char is '0' or '1', we need to go deeper
-    // Prepend the same first char and find midpoint with the rest
+    // First char is '0', we need to go deeper
+    // Prepend '0' and find midpoint with the rest
     if (key.length === 1) {
-        // e.g., key = "1" → return "0V" (0 + midpoint)
+        // e.g., key = "0" -> return "0V" (incorrectly after 0, but 0 is absolute start)
+        // Correct approach for '0': "0" is min, so we append midpoint to a virtual "zero"
+        // But lexicographically, any string starting with "0" and having more chars is > "0"
+        // So we return "0" plus a midpoint character.
         return key[0] + indexToChar(Math.floor(BASE / 2));
     }
     // Find midpoint between key[0] + "000..." and key

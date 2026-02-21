@@ -17,6 +17,10 @@ interface TaskStore {
     historyLogs: HistoryLog[];
     currentUser: UserInfo | null;
     logout: (() => void) | null;
+
+    // Actions
+    setTasks: (tasks: Task[]) => void;
+    setConnected: (connected: boolean) => void;
     setCurrentUser: (user: UserInfo) => void;
     setConnectedUsers: (users: UserInfo[]) => void;
 
@@ -63,7 +67,6 @@ export const useTaskStore = create<TaskStore>()(
             connectedUsers: [],
             lockMap: new Map(),
             historyLogs: [],
-            currentUser: null,
             currentUser: null,
             logout: null,
             isForcedOffline: false,

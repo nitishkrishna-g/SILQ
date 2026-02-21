@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.taskService = exports.TaskService = void 0;
 const client_1 = require("@prisma/client");
 const fractional_1 = require("../lib/fractional");
+const HistoryService_1 = require("./HistoryService");
 const prisma = new client_1.PrismaClient();
 class TaskService {
     /**
@@ -27,14 +28,22 @@ class TaskService {
         const orderKey = lastTask
             ? (0, fractional_1.generateKeyAfter)(lastTask.orderKey)
             : 'V'; // First task in column gets midpoint
-        return prisma.task.create({
+        const task = await prisma.task.create({
             data: {
                 title: input.title,
                 description: input.description || null,
                 status: status,
                 orderKey,
+                lastModifiedBy: input.username,
             },
         });
+        const log = await HistoryService_1.historyService.addLog({
+            action: 'CREATE',
+            taskId: task.id,
+            taskTitle: task.title,
+            userId: input.userId,
+        });
+        return { task, log };
     }
     /**
      * Update task fields (title, description).
@@ -54,6 +63,7 @@ class TaskService {
                 where: { id, version },
                 data: {
                     ...updateData,
+                    lastModifiedBy: input.username,
                     version: { increment: 1 },
                 },
             });
@@ -61,7 +71,14 @@ class TaskService {
                 return { task: null, conflict: true };
             }
             const updated = await prisma.task.findUnique({ where: { id } });
-            return { task: updated, conflict: false };
+            const log = await HistoryService_1.historyService.logActionAndUpdateTask({
+                action: 'UPDATE',
+                taskId: updated.id,
+                taskTitle: updated.title,
+                userId: input.userId,
+                details: 'Updated task details',
+            });
+            return { task: updated, conflict: false, log };
         }
         catch (error) {
             return { task: null, conflict: true };
@@ -79,6 +96,7 @@ class TaskService {
                 data: {
                     status: status,
                     orderKey,
+                    lastModifiedBy: input.username,
                     version: { increment: 1 },
                 },
             });
@@ -86,7 +104,14 @@ class TaskService {
                 return { task: null, conflict: true };
             }
             const updated = await prisma.task.findUnique({ where: { id } });
-            return { task: updated, conflict: false };
+            const log = await HistoryService_1.historyService.logActionAndUpdateTask({
+                action: 'MOVE',
+                taskId: updated.id,
+                taskTitle: updated.title,
+                userId: input.userId,
+                details: `Moved to ${status}`,
+            });
+            return { task: updated, conflict: false, log };
         }
         catch (error) {
             return { task: null, conflict: true };
@@ -98,13 +123,22 @@ class TaskService {
     async deleteTask(input) {
         const { id, version } = input;
         try {
+            const task = await prisma.task.findUnique({ where: { id } });
+            if (!task)
+                return { success: false, conflict: true };
             const result = await prisma.task.deleteMany({
                 where: { id, version },
             });
             if (result.count === 0) {
                 return { success: false, conflict: true };
             }
-            return { success: true, conflict: false };
+            const log = await HistoryService_1.historyService.addLog({
+                action: 'DELETE',
+                taskId: id,
+                taskTitle: task.title,
+                userId: input.userId,
+            });
+            return { success: true, conflict: false, log };
         }
         catch (error) {
             return { success: false, conflict: true };

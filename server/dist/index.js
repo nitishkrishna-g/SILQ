@@ -18,24 +18,38 @@ const server = http_1.default.createServer(app);
 exports.server = server;
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
 const PORT = parseInt(process.env.PORT || '3001', 10);
+const allowedOrigins = [
+    CLIENT_URL,
+    'http://localhost:3000',
+    'http://localhost:3001'
+];
 // Middleware
 app.use((0, cors_1.default)({
-    origin: CLIENT_URL,
+    origin: true, // Reflect request origin
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true,
 }));
 app.use(express_1.default.json());
+// Log middleware for debugging connections
+app.use((req, res, next) => {
+    console.log(`[HTTP] ${req.method} ${req.url} - Origin: ${req.headers.origin}`);
+    next();
+});
 // REST routes
+app.get('/', (req, res) => {
+    res.send('🚀 SILQ Server is running and live!');
+});
 app.use('/api', taskRoutes_1.default);
 // Socket.IO setup
 const io = new socket_io_1.Server(server, {
     cors: {
-        origin: CLIENT_URL,
+        origin: true, // Reflect request origin
         methods: ['GET', 'POST'],
         credentials: true,
     },
     pingTimeout: 60000,
     pingInterval: 25000,
+    transports: ['websocket', 'polling']
 });
 exports.io = io;
 // Setup WebSocket event handlers
