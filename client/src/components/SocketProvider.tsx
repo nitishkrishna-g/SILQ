@@ -27,137 +27,139 @@ export default function SocketProvider({ children, user, onLogout }: SocketProvi
         });
     }, [onLogout]);
 
+    const isForcedOffline = useTaskStore((s) => s.isForcedOffline);
+
+    // Toggle socket based on forced offline state
+    useEffect(() => {
+        if (isForcedOffline) {
+            console.log('[Socket] Forced Offline enabled');
+            disconnectSocket();
+            store.setConnected(false);
+        } else {
+            console.log('[Socket] Forced Offline disabled, reconnecting...');
+            connectSocket();
+        }
+    }, [isForcedOffline]);
+
     useEffect(() => {
         store.setCurrentUser(user);
 
-        const socket = connectSocket();
-
-        // Expose socket for testing/debugging
-        if (typeof window !== 'undefined') {
-            (window as any).__SOCKET__ = socket;
-        }
+        const socket = getSocket();
 
         // ------ Connection events ------
-        socket.on('connect', () => {
+        const onConnect = () => {
             console.log('[Socket] Connected');
             store.setConnected(true);
             socket.emit('USER_JOIN', user);
             socket.emit('REQUEST_SYNC');
 
-            // Replay offline queue
             if (store.offlineQueue.length > 0) {
                 toast.success(`Replaying ${store.offlineQueue.length} offline action(s)...`);
                 store.replayQueue();
             }
-        });
+        };
 
-        socket.on('disconnect', () => {
+        const onDisconnect = () => {
             console.log('[Socket] Disconnected');
             store.setConnected(false);
-        });
+        };
 
-        socket.on('connect_error', (err) => {
-            console.error('[Socket] Connection error:', err.message);
-        });
+        const onConnectError = (err: Error) => {
+            console.warn('[Socket] Connection error:', err.message);
+        };
+
+        socket.on('connect', onConnect);
+        socket.on('disconnect', onDisconnect);
+        socket.on('connect_error', onConnectError);
 
         // ------ Task events ------
-        socket.on('TASKS_SYNC', (tasks) => {
-            store.onTasksSync(tasks);
-        });
+        const onTasksSync = (tasks: any) => store.onTasksSync(tasks);
+        const onTaskCreated = (task: any) => store.onTaskCreated(task);
+        const onTaskUpdated = (task: any) => store.onTaskUpdated(task);
+        const onTaskMoved = (task: any) => store.onTaskMoved(task);
+        const onTaskDeleted = (data: any) => store.onTaskDeleted(data.id);
 
-        socket.on('TASK_CREATED', (task) => {
-            store.onTaskCreated(task);
-        });
-
-        socket.on('TASK_UPDATED', (task) => {
-            store.onTaskUpdated(task);
-        });
-
-        socket.on('TASK_MOVED', (task) => {
-            store.onTaskMoved(task);
-        });
-
-        socket.on('TASK_DELETED', (data) => {
-            store.onTaskDeleted(data.id);
-        });
+        socket.on('TASKS_SYNC', onTasksSync);
+        socket.on('TASK_CREATED', onTaskCreated);
+        socket.on('TASK_UPDATED', onTaskUpdated);
+        socket.on('TASK_MOVED', onTaskMoved);
+        socket.on('TASK_DELETED', onTaskDeleted);
 
         // ------ Conflict events ------
-        socket.on('CONFLICT_MOVE_REJECTED', (data) => {
+        const onConflictMove = (data: any) => {
             toast.error(data.message || 'Move conflict: task was already moved by another user.');
             store.onConflictRejected(data.id);
-        });
-
-        socket.on('CONFLICT_UPDATE_REJECTED', (data) => {
+        };
+        const onConflictUpdate = (data: any) => {
             toast.error(data.message || 'Update conflict: task was modified by another user.');
             store.onConflictRejected(data.id);
-        });
-
-        socket.on('CONFLICT_DELETE_REJECTED', (data) => {
+        };
+        const onConflictDelete = (data: any) => {
             toast.error(data.message || 'Delete conflict: task was modified before deletion.');
             store.onConflictRejected(data.id);
-        });
+        };
+
+        socket.on('CONFLICT_MOVE_REJECTED', onConflictMove);
+        socket.on('CONFLICT_UPDATE_REJECTED', onConflictUpdate);
+        socket.on('CONFLICT_DELETE_REJECTED', onConflictDelete);
 
         // ------ Presence events ------
-        socket.on('TASK_LOCKED', (data) => {
-            store.onTaskLocked(data);
-        });
+        const onTaskLocked = (data: any) => store.onTaskLocked(data);
+        const onTaskUnlocked = (data: any) => store.onTaskUnlocked(data.id);
+        const onTaskLockRejected = (data: any) => toast.error(data.message || 'Task is being edited by another user.');
 
-        socket.on('TASK_UNLOCKED', (data) => {
-            store.onTaskUnlocked(data.id);
-        });
-
-        socket.on('TASK_LOCK_REJECTED', (data) => {
-            toast.error(data.message || 'Task is being edited by another user.');
-        });
+        socket.on('TASK_LOCKED', onTaskLocked);
+        socket.on('TASK_UNLOCKED', onTaskUnlocked);
+        socket.on('TASK_LOCK_REJECTED', onTaskLockRejected);
 
         // ------ User events ------
-        socket.on('USERS_UPDATED', (users) => {
-            store.setConnectedUsers(users);
-        });
-
-        socket.on('USER_DISCONNECTED', (data) => {
+        const onUsersUpdated = (users: any) => store.setConnectedUsers(users);
+        const onUserDisconnected = (data: any) => {
             const lockMap = store.lockMap;
             lockMap.forEach((lock, taskId) => {
                 if (lock.lockedBy === data.userId) {
                     store.onTaskUnlocked(taskId);
                 }
             });
-        });
+        };
+
+        socket.on('USERS_UPDATED', onUsersUpdated);
+        socket.on('USER_DISCONNECTED', onUserDisconnected);
 
         // ------ Error events ------
-        socket.on('ERROR', (data) => {
+        const onError = (data: any) => {
             console.error('[Socket] Error:', data);
             toast.error(data.message || 'An error occurred');
-        });
+        };
+        socket.on('ERROR', onError);
 
-        // If socket is already connected (re-mount), manually trigger setup
+        // Initial setup
         if (socket.connected) {
-            store.setConnected(true);
-            socket.emit('USER_JOIN', user);
-            socket.emit('REQUEST_SYNC');
+            onConnect();
+        } else if (!isForcedOffline) {
+            connectSocket();
         }
 
         return () => {
-            socket.off('connect');
-            socket.off('disconnect');
-            socket.off('connect_error');
-            socket.off('TASKS_SYNC');
-            socket.off('TASK_CREATED');
-            socket.off('TASK_UPDATED');
-            socket.off('TASK_MOVED');
-            socket.off('TASK_DELETED');
-            socket.off('CONFLICT_MOVE_REJECTED');
-            socket.off('CONFLICT_UPDATE_REJECTED');
-            socket.off('CONFLICT_DELETE_REJECTED');
-            socket.off('TASK_LOCKED');
-            socket.off('TASK_UNLOCKED');
-            socket.off('TASK_LOCK_REJECTED');
-            socket.off('USERS_UPDATED');
-            socket.off('USER_DISCONNECTED');
-            socket.off('ERROR');
-            disconnectSocket();
+            socket.off('connect', onConnect);
+            socket.off('disconnect', onDisconnect);
+            socket.off('connect_error', onConnectError);
+            socket.off('TASKS_SYNC', onTasksSync);
+            socket.off('TASK_CREATED', onTaskCreated);
+            socket.off('TASK_UPDATED', onTaskUpdated);
+            socket.off('TASK_MOVED', onTaskMoved);
+            socket.off('TASK_DELETED', onTaskDeleted);
+            socket.off('CONFLICT_MOVE_REJECTED', onConflictMove);
+            socket.off('CONFLICT_UPDATE_REJECTED', onConflictUpdate);
+            socket.off('CONFLICT_DELETE_REJECTED', onConflictDelete);
+            socket.off('TASK_LOCKED', onTaskLocked);
+            socket.off('TASK_UNLOCKED', onTaskUnlocked);
+            socket.off('TASK_LOCK_REJECTED', onTaskLockRejected);
+            socket.off('USERS_UPDATED', onUsersUpdated);
+            socket.off('USER_DISCONNECTED', onUserDisconnected);
+            socket.off('ERROR', onError);
         };
-    }, [user.userId]);
+    }, [user.userId, isForcedOffline]);
 
     return <>{children}</>;
 }

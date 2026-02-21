@@ -1,6 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { Task, TaskStatus, QueuedAction, UserInfo, LockInfo } from '@/types';
 import { getSocket } from '@/lib/socket';
 import { generateKeyBetween, generateKeyAfter, generateKeyBefore } from '@/lib/fractional';
@@ -49,259 +50,281 @@ interface TaskStore {
 
     // Helpers
     getTasksByStatus: (status: TaskStatus) => Task[];
+    isForcedOffline: boolean;
+    toggleForcedOffline: () => void;
     getOrderKeyForPosition: (status: TaskStatus, index: number) => string;
 }
 
-export const useTaskStore = create<TaskStore>((set, get) => ({
-    tasks: [],
-    isConnected: false,
-    offlineQueue: [],
-    connectedUsers: [],
-    lockMap: new Map(),
-    currentUser: null,
-    logout: null,
+export const useTaskStore = create<TaskStore>()(
+    persist(
+        (set, get) => ({
+            tasks: [],
+            isConnected: false,
+            offlineQueue: [],
+            connectedUsers: [],
+            lockMap: new Map(),
+            currentUser: null,
+            logout: null,
+            isForcedOffline: false,
 
-    setTasks: (tasks) => set({ tasks }),
-    setConnected: (connected) => set({ isConnected: connected }),
-    setCurrentUser: (user) => set({ currentUser: user }),
-    setConnectedUsers: (users) => set({ connectedUsers: users }),
+            setTasks: (tasks) => set({ tasks }),
+            setConnected: (connected) => set({ isConnected: connected }),
+            setCurrentUser: (user) => set({ currentUser: user }),
+            setConnectedUsers: (users) => set({ connectedUsers: users }),
 
-    // ---- Task CRUD with optimistic updates ----
+            toggleForcedOffline: () => set((state) => ({ isForcedOffline: !state.isForcedOffline })),
 
-    createTask: (title, description, status = 'TODO') => {
-        const state = get();
+            // ---- Task CRUD with optimistic updates ----
 
-        const payload = { title, description, status };
-        const socket = getSocket();
+            createTask: (title, description, status = 'TODO') => {
+                const state = get();
 
-        if (state.isConnected) {
-            socket.emit('TASK_CREATE', payload);
-        } else {
-            // For offline mode, add optimistic task
-            const columTasks = state.getTasksByStatus(status);
-            const lastTask = columTasks[columTasks.length - 1];
-            const orderKey = lastTask ? generateKeyAfter(lastTask.orderKey) : 'V';
+                const payload = { title, description, status };
+                const socket = getSocket();
 
-            const optimisticTask: Task = {
-                id: uuidv4(),
-                title,
-                description,
-                status,
-                orderKey,
-                version: 1,
-                lockedBy: null,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-            };
+                if (state.isConnected) {
+                    socket.emit('TASK_CREATE', payload);
+                } else {
+                    // For offline mode, add optimistic task
+                    const columTasks = state.getTasksByStatus(status);
+                    const lastTask = columTasks[columTasks.length - 1];
+                    const orderKey = lastTask ? generateKeyAfter(lastTask.orderKey) : 'V';
 
-            set({ tasks: [...state.tasks, optimisticTask] });
-            state.addToQueue({
-                id: uuidv4(),
-                type: 'TASK_CREATE',
-                payload,
-                timestamp: Date.now(),
-            });
+                    const optimisticTask: Task = {
+                        id: uuidv4(),
+                        title,
+                        description,
+                        status,
+                        orderKey,
+                        version: 1,
+                        lockedBy: null,
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString(),
+                    };
+
+                    set({ tasks: [...state.tasks, optimisticTask] });
+                    state.addToQueue({
+                        id: uuidv4(),
+                        type: 'TASK_CREATE',
+                        payload,
+                        timestamp: Date.now(),
+                    });
+                }
+            },
+
+            updateTask: (id, title, description) => {
+                const state = get();
+                const task = state.tasks.find((t) => t.id === id);
+                if (!task) return;
+
+                // Optimistic update
+                const updatedTasks = state.tasks.map((t) => {
+                    if (t.id === id) {
+                        return {
+                            ...t,
+                            title: title ?? t.title,
+                            description: description !== undefined ? description : t.description,
+                            version: t.version, // Keep same version for optimistic; server will increment
+                        };
+                    }
+                    return t;
+                });
+                set({ tasks: updatedTasks });
+
+                const payload: Record<string, unknown> = { id, version: task.version };
+                if (title !== undefined) payload.title = title;
+                if (description !== undefined) payload.description = description;
+
+                const socket = getSocket();
+                if (state.isConnected) {
+                    socket.emit('TASK_UPDATE', payload);
+                } else {
+                    state.addToQueue({
+                        id: uuidv4(),
+                        type: 'TASK_UPDATE',
+                        payload,
+                        timestamp: Date.now(),
+                    });
+                }
+            },
+
+            moveTask: (id, newStatus, newOrderKey) => {
+                const state = get();
+                const task = state.tasks.find((t) => t.id === id);
+                if (!task) return;
+
+                // Optimistic update
+                const updatedTasks = state.tasks.map((t) => {
+                    if (t.id === id) {
+                        return { ...t, status: newStatus, orderKey: newOrderKey };
+                    }
+                    return t;
+                });
+                set({ tasks: updatedTasks });
+
+                const payload = { id, status: newStatus, orderKey: newOrderKey, version: task.version };
+                const socket = getSocket();
+
+                if (state.isConnected) {
+                    socket.emit('TASK_MOVE', payload);
+                } else {
+                    state.addToQueue({
+                        id: uuidv4(),
+                        type: 'TASK_MOVE',
+                        payload,
+                        timestamp: Date.now(),
+                    });
+                }
+            },
+
+            deleteTask: (id) => {
+                const state = get();
+                const task = state.tasks.find((t) => t.id === id);
+                if (!task) return;
+
+                // Optimistic update
+                set({ tasks: state.tasks.filter((t) => t.id !== id) });
+
+                const payload = { id, version: task.version };
+                const socket = getSocket();
+
+                if (state.isConnected) {
+                    socket.emit('TASK_DELETE', payload);
+                } else {
+                    state.addToQueue({
+                        id: uuidv4(),
+                        type: 'TASK_DELETE',
+                        payload,
+                        timestamp: Date.now(),
+                    });
+                }
+            },
+
+            // ---- Server reconciliation ----
+
+            onTaskCreated: (task) => {
+                set((state) => {
+                    // Check if already exists (dedup)
+                    if (state.tasks.some((t) => t.id === task.id)) {
+                        return { tasks: state.tasks.map((t) => (t.id === task.id ? task : t)) };
+                    }
+                    return { tasks: [...state.tasks, task] };
+                });
+            },
+
+            onTaskUpdated: (task) => {
+                set((state) => ({
+                    tasks: state.tasks.map((t) => (t.id === task.id ? task : t)),
+                }));
+            },
+
+            onTaskMoved: (task) => {
+                set((state) => ({
+                    tasks: state.tasks.map((t) => (t.id === task.id ? task : t)),
+                }));
+            },
+
+            onTaskDeleted: (id) => {
+                set((state) => ({
+                    tasks: state.tasks.filter((t) => t.id !== id),
+                }));
+            },
+
+            onTasksSync: (tasks) => {
+                set({ tasks });
+            },
+
+            onConflictRejected: (_id) => {
+                // Re-sync from server
+                const socket = getSocket();
+                socket.emit('REQUEST_SYNC');
+            },
+
+            // ---- Presence ----
+
+            lockTask: (id) => {
+                const state = get();
+                if (!state.currentUser) return;
+                const socket = getSocket();
+                socket.emit('TASK_LOCK', { id, userId: state.currentUser.userId });
+            },
+
+            unlockTask: (id) => {
+                const state = get();
+                if (!state.currentUser) return;
+                const socket = getSocket();
+                socket.emit('TASK_UNLOCK', { id, userId: state.currentUser.userId });
+            },
+
+            onTaskLocked: (lockInfo) => {
+                set((state) => {
+                    const newMap = new Map(state.lockMap);
+                    newMap.set(lockInfo.id, lockInfo);
+                    return { lockMap: newMap };
+                });
+            },
+
+            onTaskUnlocked: (id) => {
+                set((state) => {
+                    const newMap = new Map(state.lockMap);
+                    newMap.delete(id);
+                    return { lockMap: newMap };
+                });
+            },
+
+            // ---- Offline queue ----
+
+            addToQueue: (action) => {
+                set((state) => ({ offlineQueue: [...state.offlineQueue, action] }));
+            },
+
+            replayQueue: () => {
+                const state = get();
+                const socket = getSocket();
+                const queue = [...state.offlineQueue];
+                set({ offlineQueue: [] });
+
+                // Replay sequentially
+                queue.forEach((action) => {
+                    try {
+                        socket.emit(action.type, action.payload);
+                    } catch (error) {
+                        console.error(`[Store] Failed to replay action ${action.type}:`, error);
+                    }
+                });
+            },
+
+            clearQueue: () => set({ offlineQueue: [] }),
+
+            // ---- Helpers ----
+
+            getTasksByStatus: (status) => {
+                return get()
+                    .tasks.filter((t) => t.status === status)
+                    .sort((a, b) => a.orderKey.localeCompare(b.orderKey));
+            },
+
+            getOrderKeyForPosition: (status, index) => {
+                const columnTasks = get().getTasksByStatus(status);
+
+                if (columnTasks.length === 0) return 'V';
+                if (index === 0) {
+                    return generateKeyBefore(columnTasks[0].orderKey);
+                }
+                if (index >= columnTasks.length) {
+                    return generateKeyAfter(columnTasks[columnTasks.length - 1].orderKey);
+                }
+                return generateKeyBetween(columnTasks[index - 1].orderKey, columnTasks[index].orderKey);
+            },
+        }),
+        {
+            name: 'kanban-storage',
+            storage: createJSONStorage(() => localStorage),
+            partialize: (state) => ({
+                tasks: state.tasks,
+                offlineQueue: state.offlineQueue,
+                currentUser: state.currentUser,
+            }),
         }
-    },
-
-    updateTask: (id, title, description) => {
-        const state = get();
-        const task = state.tasks.find((t) => t.id === id);
-        if (!task) return;
-
-        // Optimistic update
-        const updatedTasks = state.tasks.map((t) => {
-            if (t.id === id) {
-                return {
-                    ...t,
-                    title: title ?? t.title,
-                    description: description !== undefined ? description : t.description,
-                    version: t.version, // Keep same version for optimistic; server will increment
-                };
-            }
-            return t;
-        });
-        set({ tasks: updatedTasks });
-
-        const payload: Record<string, unknown> = { id, version: task.version };
-        if (title !== undefined) payload.title = title;
-        if (description !== undefined) payload.description = description;
-
-        const socket = getSocket();
-        if (state.isConnected) {
-            socket.emit('TASK_UPDATE', payload);
-        } else {
-            state.addToQueue({
-                id: uuidv4(),
-                type: 'TASK_UPDATE',
-                payload,
-                timestamp: Date.now(),
-            });
-        }
-    },
-
-    moveTask: (id, newStatus, newOrderKey) => {
-        const state = get();
-        const task = state.tasks.find((t) => t.id === id);
-        if (!task) return;
-
-        // Optimistic update
-        const updatedTasks = state.tasks.map((t) => {
-            if (t.id === id) {
-                return { ...t, status: newStatus, orderKey: newOrderKey };
-            }
-            return t;
-        });
-        set({ tasks: updatedTasks });
-
-        const payload = { id, status: newStatus, orderKey: newOrderKey, version: task.version };
-        const socket = getSocket();
-
-        if (state.isConnected) {
-            socket.emit('TASK_MOVE', payload);
-        } else {
-            state.addToQueue({
-                id: uuidv4(),
-                type: 'TASK_MOVE',
-                payload,
-                timestamp: Date.now(),
-            });
-        }
-    },
-
-    deleteTask: (id) => {
-        const state = get();
-        const task = state.tasks.find((t) => t.id === id);
-        if (!task) return;
-
-        // Optimistic update
-        set({ tasks: state.tasks.filter((t) => t.id !== id) });
-
-        const payload = { id, version: task.version };
-        const socket = getSocket();
-
-        if (state.isConnected) {
-            socket.emit('TASK_DELETE', payload);
-        } else {
-            state.addToQueue({
-                id: uuidv4(),
-                type: 'TASK_DELETE',
-                payload,
-                timestamp: Date.now(),
-            });
-        }
-    },
-
-    // ---- Server reconciliation ----
-
-    onTaskCreated: (task) => {
-        set((state) => {
-            // Check if already exists (dedup)
-            if (state.tasks.some((t) => t.id === task.id)) {
-                return { tasks: state.tasks.map((t) => (t.id === task.id ? task : t)) };
-            }
-            return { tasks: [...state.tasks, task] };
-        });
-    },
-
-    onTaskUpdated: (task) => {
-        set((state) => ({
-            tasks: state.tasks.map((t) => (t.id === task.id ? task : t)),
-        }));
-    },
-
-    onTaskMoved: (task) => {
-        set((state) => ({
-            tasks: state.tasks.map((t) => (t.id === task.id ? task : t)),
-        }));
-    },
-
-    onTaskDeleted: (id) => {
-        set((state) => ({
-            tasks: state.tasks.filter((t) => t.id !== id),
-        }));
-    },
-
-    onTasksSync: (tasks) => {
-        set({ tasks });
-    },
-
-    onConflictRejected: (_id) => {
-        // Re-sync from server
-        const socket = getSocket();
-        socket.emit('REQUEST_SYNC');
-    },
-
-    // ---- Presence ----
-
-    lockTask: (id) => {
-        const state = get();
-        if (!state.currentUser) return;
-        const socket = getSocket();
-        socket.emit('TASK_LOCK', { id, userId: state.currentUser.userId });
-    },
-
-    unlockTask: (id) => {
-        const state = get();
-        if (!state.currentUser) return;
-        const socket = getSocket();
-        socket.emit('TASK_UNLOCK', { id, userId: state.currentUser.userId });
-    },
-
-    onTaskLocked: (lockInfo) => {
-        set((state) => {
-            const newMap = new Map(state.lockMap);
-            newMap.set(lockInfo.id, lockInfo);
-            return { lockMap: newMap };
-        });
-    },
-
-    onTaskUnlocked: (id) => {
-        set((state) => {
-            const newMap = new Map(state.lockMap);
-            newMap.delete(id);
-            return { lockMap: newMap };
-        });
-    },
-
-    // ---- Offline queue ----
-
-    addToQueue: (action) => {
-        set((state) => ({ offlineQueue: [...state.offlineQueue, action] }));
-    },
-
-    replayQueue: () => {
-        const state = get();
-        const socket = getSocket();
-        const queue = [...state.offlineQueue];
-        set({ offlineQueue: [] });
-
-        // Replay sequentially
-        queue.forEach((action) => {
-            socket.emit(action.type, action.payload);
-        });
-    },
-
-    clearQueue: () => set({ offlineQueue: [] }),
-
-    // ---- Helpers ----
-
-    getTasksByStatus: (status) => {
-        return get()
-            .tasks.filter((t) => t.status === status)
-            .sort((a, b) => a.orderKey.localeCompare(b.orderKey));
-    },
-
-    getOrderKeyForPosition: (status, index) => {
-        const columnTasks = get().getTasksByStatus(status);
-
-        if (columnTasks.length === 0) return 'V';
-        if (index === 0) {
-            return generateKeyBefore(columnTasks[0].orderKey);
-        }
-        if (index >= columnTasks.length) {
-            return generateKeyAfter(columnTasks[columnTasks.length - 1].orderKey);
-        }
-        return generateKeyBetween(columnTasks[index - 1].orderKey, columnTasks[index].orderKey);
-    },
-}));
+    )
+);

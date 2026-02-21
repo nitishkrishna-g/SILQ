@@ -23,6 +23,7 @@ export default function Board() {
     const currentUser = useTaskStore((s) => s.currentUser);
     const offlineQueue = useTaskStore((s) => s.offlineQueue);
     const moveTask = useTaskStore((s) => s.moveTask);
+    const isForcedOffline = useTaskStore((s) => s.isForcedOffline);
     const logout = useTaskStore((s) => s.logout);
 
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -97,6 +98,15 @@ export default function Board() {
                 </div>
 
                 <div className={styles.headerRight}>
+                    {/* Offline Toggle */}
+                    <button
+                        className={`${styles.toggleOfflineBtn} ${isForcedOffline ? styles.toggleForced : ''}`}
+                        onClick={() => useTaskStore.getState().toggleForcedOffline()}
+                        title={isForcedOffline ? 'Go Online' : 'Simulate Offline'}
+                    >
+                        {isForcedOffline ? '🌐 Go Online' : '🔌 Go Offline'}
+                    </button>
+
                     {/* All 5 users with online/offline indicators */}
                     <div className={styles.usersGroup}>
                         {DEFAULT_USERS.map((u) => {

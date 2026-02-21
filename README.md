@@ -8,8 +8,9 @@ A production-grade Kanban board with real-time collaboration, drag-and-drop, and
 
 - **Real-time sync** — Changes propagate instantly to all connected users via WebSocket
 - **Drag-and-drop** — Move tasks between To Do, In Progress, and Done columns
-- **Inline editing** — Click any task to edit title/description in-place
-- **Conflict resolution** — Optimistic concurrency control prevents data loss
+- **Offline Support**: Board remains interactive without network. Actions are queued and replayed automatically.
+- **Manual Offline Toggle**: Use the "🔌 Go Offline" button in the navbar to manually simulate network loss for testing.
+- **Conflict Resolution**: Version-based OCC and task locking to prevent data loss.
 - **Presence indicators** — See who's editing what (colored borders + lock icons)
 - **Offline mode** — Queue actions while disconnected, replay on reconnect
 - **Fractional indexing** — O(1) reordering without shifting other rows
@@ -102,6 +103,31 @@ See [DESIGN.md](./DESIGN.md) for details on:
 - Presence & locking system
 - Offline replay queue
 
-## License
+## Deployment
 
-MIT
+### Live URL
+[🚀 View the Live Kanban Board](https://silq-kanban.render.com) (Placeholder - Replace with your actual URL)
+
+### Deployment Instructions
+
+#### 1. Backend (Render/Railway)
+- Connect your GitHub repository.
+- Use `npm install` for the build command.
+- Use `npm start` for the start command.
+- Set `DATABASE_URL` to your PostgreSQL instance.
+- Ensure WebSockets are enabled (Render supports this natively).
+
+#### 2. Frontend (Render/Vercel)
+- Set `NEXT_PUBLIC_SERVER_URL` to your backend URL.
+- Use `npm run build` as the build command.
+- Use `npm run start` or static hosting depending on the platform.
+
+> **Note:** On free tiers, the backend may experience a "cold start" delay of up to 60 seconds on the first request.
+
+## Tests
+
+Run the following command in the `server` directory to execute unit and integration tests:
+
+```bash
+npm test
+```
