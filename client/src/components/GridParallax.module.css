@@ -1,0 +1,37 @@
+.container {
+    position: fixed;
+    top: -5%;
+    left: -5%;
+    width: 110%;
+    height: 110%;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+    background-color: transparent;
+    /* Let the body background and organic gradients show through */
+}
+
+.layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    will-change: transform;
+
+    /* Blueprint Grid Pattern */
+    background-size: 50px 50px;
+    background-image:
+        linear-gradient(to right, rgba(99, 102, 241, 0.25) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(99, 102, 241, 0.25) 1px, transparent 1px);
+}
+
+.vignette {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    background: radial-gradient(circle at center, transparent 30%, var(--bg) 110%);
+}

@@ -1,5 +1,6 @@
-import { PrismaClient, Status, Task } from '@prisma/client';
+import { PrismaClient, Status, Task, HistoryLog } from '@prisma/client';
 import { generateKeyBetween, generateKeyAfter } from '../lib/fractional';
+import { historyService } from './HistoryService';
 import {
     CreateTaskInput,
     UpdateTaskInput,
@@ -25,7 +26,7 @@ export class TaskService {
      * Create a new task.
      * Assigns an orderKey at the bottom of the target column.
      */
-    async createTask(input: CreateTaskInput): Promise<Task> {
+    async createTask(input: CreateTaskInput): Promise<{ task: Task; log: HistoryLog }> {
         const status = input.status || 'TODO';
 
         // Find the last task in this column to generate an orderKey after it
@@ -38,14 +39,24 @@ export class TaskService {
             ? generateKeyAfter(lastTask.orderKey)
             : 'V'; // First task in column gets midpoint
 
-        return prisma.task.create({
+        const task = await prisma.task.create({
             data: {
                 title: input.title,
                 description: input.description || null,
                 status: status as Status,
                 orderKey,
+                lastModifiedBy: input.username,
             },
         });
+
+        const log = await historyService.addLog({
+            action: 'CREATE',
+            taskId: task.id,
+            taskTitle: task.title,
+            userId: input.userId,
+        });
+
+        return { task, log };
     }
 
     /**
@@ -53,7 +64,7 @@ export class TaskService {
      * Uses OCC: only updates if version matches.
      * Updates specific fields only — never replaces the whole document.
      */
-    async updateTask(input: UpdateTaskInput): Promise<{ task: Task | null; conflict: boolean }> {
+    async updateTask(input: UpdateTaskInput): Promise<{ task: Task | null; conflict: boolean; log?: HistoryLog }> {
         const { id, version, ...fields } = input;
 
         // Build dynamic update data with only provided fields
@@ -66,6 +77,7 @@ export class TaskService {
                 where: { id, version },
                 data: {
                     ...updateData,
+                    lastModifiedBy: input.username,
                     version: { increment: 1 },
                 },
             });
@@ -75,7 +87,16 @@ export class TaskService {
             }
 
             const updated = await prisma.task.findUnique({ where: { id } });
-            return { task: updated, conflict: false };
+
+            const log = await historyService.logActionAndUpdateTask({
+                action: 'UPDATE',
+                taskId: updated!.id,
+                taskTitle: updated!.title,
+                userId: input.userId,
+                details: 'Updated task details',
+            });
+
+            return { task: updated, conflict: false, log };
         } catch (error) {
             return { task: null, conflict: true };
         }
@@ -85,7 +106,7 @@ export class TaskService {
      * Move a task to a different column and/or new position.
      * Uses OCC via version field.
      */
-    async moveTask(input: MoveTaskInput): Promise<{ task: Task | null; conflict: boolean }> {
+    async moveTask(input: MoveTaskInput): Promise<{ task: Task | null; conflict: boolean; log?: HistoryLog }> {
         const { id, status, orderKey, version } = input;
 
         try {
@@ -94,6 +115,7 @@ export class TaskService {
                 data: {
                     status: status as Status,
                     orderKey,
+                    lastModifiedBy: input.username,
                     version: { increment: 1 },
                 },
             });
@@ -103,7 +125,16 @@ export class TaskService {
             }
 
             const updated = await prisma.task.findUnique({ where: { id } });
-            return { task: updated, conflict: false };
+
+            const log = await historyService.logActionAndUpdateTask({
+                action: 'MOVE',
+                taskId: updated!.id,
+                taskTitle: updated!.title,
+                userId: input.userId,
+                details: `Moved to ${status}`,
+            });
+
+            return { task: updated, conflict: false, log };
         } catch (error) {
             return { task: null, conflict: true };
         }
@@ -112,10 +143,13 @@ export class TaskService {
     /**
      * Delete a task. Uses version check for OCC.
      */
-    async deleteTask(input: DeleteTaskInput): Promise<{ success: boolean; conflict: boolean }> {
+    async deleteTask(input: DeleteTaskInput): Promise<{ success: boolean; conflict: boolean; log?: HistoryLog }> {
         const { id, version } = input;
 
         try {
+            const task = await prisma.task.findUnique({ where: { id } });
+            if (!task) return { success: false, conflict: true };
+
             const result = await prisma.task.deleteMany({
                 where: { id, version },
             });
@@ -124,7 +158,14 @@ export class TaskService {
                 return { success: false, conflict: true };
             }
 
-            return { success: true, conflict: false };
+            const log = await historyService.addLog({
+                action: 'DELETE',
+                taskId: id,
+                taskTitle: task.title,
+                userId: input.userId,
+            });
+
+            return { success: true, conflict: false, log };
         } catch (error) {
             return { success: false, conflict: true };
         }

@@ -17,6 +17,7 @@ export default function TaskCard({ task, index }: TaskCardProps) {
     const [editTitle, setEditTitle] = useState(task.title);
     const [editDescription, setEditDescription] = useState(task.description || '');
     const titleInputRef = useRef<HTMLInputElement>(null);
+    const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
     const lockInfo = lockMap.get(task.id);
     const isLockedByOther = lockInfo && lockInfo.lockedBy !== currentUser?.userId;
@@ -89,6 +90,24 @@ export default function TaskCard({ task, index }: TaskCardProps) {
         }
     };
 
+    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        setMousePos({
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top,
+        });
+    };
+
+    const statusClass =
+        task.status === 'TODO' ? styles.cardTodo :
+            task.status === 'IN_PROGRESS' ? styles.cardInProgress :
+                task.status === 'DONE' ? styles.cardDone : '';
+
+    const spotlightColor =
+        task.status === 'TODO' ? 'rgba(59, 130, 246, 0.15)' :
+            task.status === 'IN_PROGRESS' ? 'rgba(251, 191, 36, 0.15)' :
+                task.status === 'DONE' ? 'rgba(34, 197, 94, 0.15)' : 'rgba(255,255,255,0.1)';
+
     return (
         <Draggable draggableId={task.id} index={index} isDragDisabled={isLockedByOther || false}>
             {(provided, snapshot) => (
@@ -96,63 +115,81 @@ export default function TaskCard({ task, index }: TaskCardProps) {
                     ref={provided.innerRef}
                     {...provided.draggableProps}
                     {...provided.dragHandleProps}
-                    className={`${styles.card} ${snapshot.isDragging ? styles.dragging : ''} ${isLockedByOther ? styles.locked : ''} ${isLockedByMe ? styles.lockedByMe : ''}`}
+                    className={`${styles.card} ${statusClass} ${snapshot.isDragging ? styles.dragging : ''} ${isLockedByOther ? styles.locked : ''} ${isLockedByMe ? styles.lockedByMe : ''}`}
                     style={{
                         ...provided.draggableProps.style,
                         borderColor: lockInfo ? lockInfo.color : undefined,
                         borderWidth: lockInfo ? '2px' : undefined,
                     }}
                     onClick={() => !isEditing && !isLockedByOther && handleStartEdit()}
+                    onMouseMove={handleMouseMove}
                 >
-                    {isEditing ? (
-                        <div className={styles.editMode} onClick={stopDrag} onMouseDown={stopDrag}>
-                            <input
-                                ref={titleInputRef}
-                                className={styles.editInput}
-                                value={editTitle}
-                                onChange={(e) => setEditTitle(e.target.value)}
-                                onKeyDown={handleKeyDown}
-                                placeholder="Task title..."
-                            />
-                            <textarea
-                                className={styles.editTextarea}
-                                value={editDescription}
-                                onChange={(e) => setEditDescription(e.target.value)}
-                                onKeyDown={handleKeyDown}
-                                placeholder="Description (optional)..."
-                                rows={2}
-                            />
-                            <div className={styles.editActions}>
-                                <button className={styles.saveBtn} onClick={handleSave} onMouseDown={stopDrag}>Save</button>
-                                <button className={styles.cancelBtn} onClick={handleCancel} onMouseDown={stopDrag}>Cancel</button>
+                    <div
+                        className={styles.spotlight}
+                        style={{
+                            background: `radial-gradient(400px circle at ${mousePos.x}px ${mousePos.y}px, ${spotlightColor}, transparent 40%)`
+                        }}
+                    />
+                    <div className={styles.contentWrapper}>
+                        {isEditing ? (
+                            <div className={styles.editMode} onClick={stopDrag} onMouseDown={stopDrag}>
+                                <input
+                                    ref={titleInputRef}
+                                    className={styles.editInput}
+                                    value={editTitle}
+                                    onChange={(e) => setEditTitle(e.target.value)}
+                                    onKeyDown={handleKeyDown}
+                                    placeholder="Task title..."
+                                />
+                                <textarea
+                                    className={styles.editTextarea}
+                                    value={editDescription}
+                                    onChange={(e) => setEditDescription(e.target.value)}
+                                    onKeyDown={handleKeyDown}
+                                    placeholder="Description (optional)..."
+                                    rows={2}
+                                />
+                                <div className={styles.editActions}>
+                                    <button className={styles.saveBtn} onClick={handleSave} onMouseDown={stopDrag}>Save</button>
+                                    <button className={styles.cancelBtn} onClick={handleCancel} onMouseDown={stopDrag}>Cancel</button>
+                                </div>
                             </div>
-                        </div>
-                    ) : (
-                        <>
-                            <div className={styles.cardHeader}>
-                                <h3 className={styles.cardTitle}>{task.title}</h3>
-                                <button
-                                    className={styles.deleteBtn}
-                                    onClick={handleDelete}
-                                    onMouseDown={stopDrag}
-                                    title="Delete task"
-                                >
-                                    ✕
-                                </button>
-                            </div>
-                            {task.description && (
-                                <p className={styles.cardDescription}>{task.description}</p>
-                            )}
-                            <div className={styles.cardFooter}>
-                                <span className={styles.versionBadge}>v{task.version}</span>
-                                {isLockedByOther && (
-                                    <span className={styles.lockIndicator} style={{ color: lockInfo?.color }}>
-                                        🔒 {lockInfo?.lockedBy}
-                                    </span>
+                        ) : (
+                            <>
+                                <div className={styles.cardHeader}>
+                                    <h3 className={styles.cardTitle}>{task.title}</h3>
+                                    {!isLockedByOther && (
+                                        <button
+                                            className={styles.deleteBtn}
+                                            onClick={handleDelete}
+                                            onMouseDown={stopDrag}
+                                            title="Delete task"
+                                        >
+                                            ✕
+                                        </button>
+                                    )}
+                                </div>
+                                {task.description && (
+                                    <p className={styles.cardDescription}>{task.description}</p>
                                 )}
-                            </div>
-                        </>
-                    )}
+                                <div className={styles.cardFooter}>
+                                    <div className={styles.footerLeft}>
+                                        <span className={styles.versionBadge}>v{task.version}</span>
+                                        {task.lastModifiedBy && (
+                                            <span className={styles.modifiedBy} title={`Last modified by ${task.lastModifiedBy}`}>
+                                                Last modified by "{task.lastModifiedBy}"
+                                            </span>
+                                        )}
+                                    </div>
+                                    {isLockedByOther && (
+                                        <span className={styles.lockIndicator} style={{ color: lockInfo?.color }}>
+                                            🔒 {lockInfo?.lockedBy}
+                                        </span>
+                                    )}
+                                </div>
+                            </>
+                        )}
+                    </div>
                 </div>
             )}
         </Draggable>

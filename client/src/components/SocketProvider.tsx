@@ -78,12 +78,16 @@ export default function SocketProvider({ children, user, onLogout }: SocketProvi
         const onTaskUpdated = (task: any) => store.onTaskUpdated(task);
         const onTaskMoved = (task: any) => store.onTaskMoved(task);
         const onTaskDeleted = (data: any) => store.onTaskDeleted(data.id);
+        const onHistorySync = (logs: any) => store.onHistorySync(logs);
+        const onHistoryAdded = (log: any) => store.onHistoryAdded(log);
 
         socket.on('TASKS_SYNC', onTasksSync);
         socket.on('TASK_CREATED', onTaskCreated);
         socket.on('TASK_UPDATED', onTaskUpdated);
         socket.on('TASK_MOVED', onTaskMoved);
         socket.on('TASK_DELETED', onTaskDeleted);
+        socket.on('HISTORY_SYNC', onHistorySync);
+        socket.on('HISTORY_ADDED', onHistoryAdded);
 
         // ------ Conflict events ------
         const onConflictMove = (data: any) => {
@@ -115,7 +119,7 @@ export default function SocketProvider({ children, user, onLogout }: SocketProvi
         // ------ User events ------
         const onUsersUpdated = (users: any) => store.setConnectedUsers(users);
         const onUserDisconnected = (data: any) => {
-            const lockMap = store.lockMap;
+            const lockMap = useTaskStore.getState().lockMap;
             lockMap.forEach((lock, taskId) => {
                 if (lock.lockedBy === data.userId) {
                     store.onTaskUnlocked(taskId);
@@ -149,6 +153,8 @@ export default function SocketProvider({ children, user, onLogout }: SocketProvi
             socket.off('TASK_UPDATED', onTaskUpdated);
             socket.off('TASK_MOVED', onTaskMoved);
             socket.off('TASK_DELETED', onTaskDeleted);
+            socket.off('HISTORY_SYNC', onHistorySync);
+            socket.off('HISTORY_ADDED', onHistoryAdded);
             socket.off('CONFLICT_MOVE_REJECTED', onConflictMove);
             socket.off('CONFLICT_UPDATE_REJECTED', onConflictUpdate);
             socket.off('CONFLICT_DELETE_REJECTED', onConflictDelete);

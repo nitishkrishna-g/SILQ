@@ -21,13 +21,13 @@
 }
 
 .modal {
-    background: #1a1c28;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--card-bg);
+    border: 1px solid var(--border);
     border-radius: 16px;
     width: 90%;
     max-width: 480px;
     padding: 0;
-    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+    box-shadow: var(--shadow);
     animation: slideUp 0.2s ease;
 }
 
@@ -53,14 +53,14 @@
 .modalHeader h2 {
     font-size: 1.15rem;
     font-weight: 700;
-    color: white;
+    color: var(--text-primary);
     margin: 0;
 }
 
 .closeBtn {
     background: none;
     border: none;
-    color: rgba(255, 255, 255, 0.3);
+    color: var(--text-secondary);
     font-size: 1.1rem;
     cursor: pointer;
     padding: 4px 8px;
@@ -69,8 +69,8 @@
 }
 
 .closeBtn:hover {
-    color: white;
-    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-primary);
+    background: var(--surface);
 }
 
 .form {
@@ -89,7 +89,7 @@
 .label {
     font-size: 0.78rem;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
@@ -97,11 +97,11 @@
 .input,
 .textarea,
 .select {
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--input-bg);
+    border: 1px solid var(--border);
     border-radius: 10px;
     padding: 10px 14px;
-    color: white;
+    color: var(--text-primary);
     font-size: 0.9rem;
     outline: none;
     transition: border-color 0.2s;
@@ -111,7 +111,7 @@
 .input:focus,
 .textarea:focus,
 .select:focus {
-    border-color: #6366f1;
+    border-color: var(--accent);
 }
 
 .textarea {
@@ -129,8 +129,8 @@
 }
 
 .select option {
-    background: #1a1c28;
-    color: white;
+    background: var(--card-bg);
+    color: var(--text-primary);
 }
 
 .actions {
@@ -141,9 +141,9 @@
 }
 
 .cancelBtn {
-    background: rgba(255, 255, 255, 0.06);
-    color: rgba(255, 255, 255, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--surface);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
     padding: 9px 20px;
     border-radius: 8px;
     font-size: 0.85rem;
@@ -152,12 +152,12 @@
 }
 
 .cancelBtn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
+    background: var(--border);
+    color: var(--text-primary);
 }
 
 .createBtn {
-    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    background: var(--accent);
     color: white;
     border: none;
     padding: 9px 24px;
@@ -176,4 +176,31 @@
 .createBtn:disabled {
     opacity: 0.4;
     cursor: not-allowed;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 480px) {
+    .modal {
+        width: 95%;
+        border-radius: 12px;
+    }
+
+    .modalHeader {
+        padding: 16px 20px 0;
+    }
+
+    .modalHeader h2 {
+        font-size: 1.05rem;
+    }
+
+    .form {
+        padding: 16px 20px 20px;
+        gap: 12px;
+    }
+
+    .cancelBtn,
+    .createBtn {
+        padding: 8px 16px;
+        font-size: 0.8rem;
+    }
 }

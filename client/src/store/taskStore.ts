@@ -2,7 +2,7 @@
 
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { Task, TaskStatus, QueuedAction, UserInfo, LockInfo } from '@/types';
+import { Task, TaskStatus, QueuedAction, UserInfo, LockInfo, HistoryLog } from '@/types';
 import { getSocket } from '@/lib/socket';
 import { generateKeyBetween, generateKeyAfter, generateKeyBefore } from '@/lib/fractional';
 import { v4 as uuidv4 } from 'uuid';
@@ -14,14 +14,17 @@ interface TaskStore {
     offlineQueue: QueuedAction[];
     connectedUsers: UserInfo[];
     lockMap: Map<string, LockInfo>;
+    historyLogs: HistoryLog[];
     currentUser: UserInfo | null;
     logout: (() => void) | null;
+    theme: 'light' | 'dark';
 
     // Actions
     setTasks: (tasks: Task[]) => void;
     setConnected: (connected: boolean) => void;
     setCurrentUser: (user: UserInfo) => void;
     setConnectedUsers: (users: UserInfo[]) => void;
+    toggleTheme: () => void;
 
     // Task CRUD (optimistic)
     createTask: (title: string, description: string | null, status?: TaskStatus) => void;
@@ -35,6 +38,8 @@ interface TaskStore {
     onTaskMoved: (task: Task) => void;
     onTaskDeleted: (id: string) => void;
     onTasksSync: (tasks: Task[]) => void;
+    onHistorySync: (logs: HistoryLog[]) => void;
+    onHistoryAdded: (log: HistoryLog) => void;
     onConflictRejected: (id: string) => void;
 
     // Presence
@@ -63,14 +68,18 @@ export const useTaskStore = create<TaskStore>()(
             offlineQueue: [],
             connectedUsers: [],
             lockMap: new Map(),
+            historyLogs: [],
             currentUser: null,
             logout: null,
             isForcedOffline: false,
+            theme: 'dark',
 
             setTasks: (tasks) => set({ tasks }),
             setConnected: (connected) => set({ isConnected: connected }),
             setCurrentUser: (user) => set({ currentUser: user }),
             setConnectedUsers: (users) => set({ connectedUsers: users }),
+
+            toggleTheme: () => set((state) => ({ theme: state.theme === 'light' ? 'dark' : 'light' })),
 
             toggleForcedOffline: () => set((state) => ({ isForcedOffline: !state.isForcedOffline })),
 
@@ -78,8 +87,15 @@ export const useTaskStore = create<TaskStore>()(
 
             createTask: (title, description, status = 'TODO') => {
                 const state = get();
+                if (!state.currentUser) return;
 
-                const payload = { title, description, status };
+                const payload = {
+                    title,
+                    description,
+                    status,
+                    userId: state.currentUser.userId,
+                    username: state.currentUser.username
+                };
                 const socket = getSocket();
 
                 if (state.isConnected) {
@@ -98,6 +114,7 @@ export const useTaskStore = create<TaskStore>()(
                         orderKey,
                         version: 1,
                         lockedBy: null,
+                        lastModifiedBy: state.currentUser.username,
                         createdAt: new Date().toISOString(),
                         updatedAt: new Date().toISOString(),
                     };
@@ -114,6 +131,7 @@ export const useTaskStore = create<TaskStore>()(
 
             updateTask: (id, title, description) => {
                 const state = get();
+                if (!state.currentUser) return;
                 const task = state.tasks.find((t) => t.id === id);
                 if (!task) return;
 
@@ -125,13 +143,19 @@ export const useTaskStore = create<TaskStore>()(
                             title: title ?? t.title,
                             description: description !== undefined ? description : t.description,
                             version: t.version, // Keep same version for optimistic; server will increment
+                            lastModifiedBy: state.currentUser!.username,
                         };
                     }
                     return t;
                 });
                 set({ tasks: updatedTasks });
 
-                const payload: Record<string, unknown> = { id, version: task.version };
+                const payload: Record<string, unknown> = {
+                    id,
+                    version: task.version,
+                    userId: state.currentUser.userId,
+                    username: state.currentUser.username
+                };
                 if (title !== undefined) payload.title = title;
                 if (description !== undefined) payload.description = description;
 
@@ -150,19 +174,32 @@ export const useTaskStore = create<TaskStore>()(
 
             moveTask: (id, newStatus, newOrderKey) => {
                 const state = get();
+                if (!state.currentUser) return;
                 const task = state.tasks.find((t) => t.id === id);
                 if (!task) return;
 
                 // Optimistic update
                 const updatedTasks = state.tasks.map((t) => {
                     if (t.id === id) {
-                        return { ...t, status: newStatus, orderKey: newOrderKey };
+                        return {
+                            ...t,
+                            status: newStatus,
+                            orderKey: newOrderKey,
+                            lastModifiedBy: state.currentUser!.username
+                        };
                     }
                     return t;
                 });
                 set({ tasks: updatedTasks });
 
-                const payload = { id, status: newStatus, orderKey: newOrderKey, version: task.version };
+                const payload = {
+                    id,
+                    status: newStatus,
+                    orderKey: newOrderKey,
+                    version: task.version,
+                    userId: state.currentUser.userId,
+                    username: state.currentUser.username
+                };
                 const socket = getSocket();
 
                 if (state.isConnected) {
@@ -179,13 +216,19 @@ export const useTaskStore = create<TaskStore>()(
 
             deleteTask: (id) => {
                 const state = get();
+                if (!state.currentUser) return;
                 const task = state.tasks.find((t) => t.id === id);
                 if (!task) return;
 
                 // Optimistic update
                 set({ tasks: state.tasks.filter((t) => t.id !== id) });
 
-                const payload = { id, version: task.version };
+                const payload = {
+                    id,
+                    version: task.version,
+                    userId: state.currentUser.userId,
+                    username: state.currentUser.username
+                };
                 const socket = getSocket();
 
                 if (state.isConnected) {
@@ -231,7 +274,36 @@ export const useTaskStore = create<TaskStore>()(
             },
 
             onTasksSync: (tasks) => {
-                set({ tasks });
+                set((state) => {
+                    // Rebuild the lockMap based on the actual DB state
+                    const newLockMap = new Map<string, LockInfo>();
+                    tasks.forEach((task) => {
+                        if (task.lockedBy) {
+                            // Try to preserve color if it already exists, or assign default
+                            const existingLock = state.lockMap.get(task.id);
+                            const userColor = state.connectedUsers.find(u => u.userId === task.lockedBy)?.color || existingLock?.color || '#6366f1';
+
+                            newLockMap.set(task.id, {
+                                id: task.id,
+                                lockedBy: task.lockedBy,
+                                color: userColor
+                            });
+                        }
+                    });
+
+                    return { tasks, lockMap: newLockMap };
+                });
+            },
+
+            onHistorySync: (logs) => {
+                set({ historyLogs: logs });
+            },
+
+            onHistoryAdded: (log) => {
+                set((state) => ({
+                    // Keep most recent 100 on the front-end to avoid memory bloat
+                    historyLogs: [log, ...state.historyLogs].slice(0, 100),
+                }));
             },
 
             onConflictRejected: (_id) => {
@@ -324,6 +396,7 @@ export const useTaskStore = create<TaskStore>()(
                 tasks: state.tasks,
                 offlineQueue: state.offlineQueue,
                 currentUser: state.currentUser,
+                theme: state.theme,
             }),
         }
     )

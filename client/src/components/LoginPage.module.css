@@ -21,7 +21,8 @@
 .orb1 {
     width: 400px;
     height: 400px;
-    background: rgba(99, 102, 241, 0.15);
+    background: var(--accent);
+    opacity: 0.1;
     top: -100px;
     left: -100px;
     animation-delay: 0s;
@@ -30,7 +31,8 @@
 .orb2 {
     width: 350px;
     height: 350px;
-    background: rgba(139, 92, 246, 0.12);
+    background: var(--accent);
+    opacity: 0.08;
     bottom: -80px;
     right: -80px;
     animation-delay: -3s;
@@ -39,7 +41,8 @@
 .orb3 {
     width: 250px;
     height: 250px;
-    background: rgba(236, 72, 153, 0.1);
+    background: var(--accent);
+    opacity: 0.05;
     top: 40%;
     right: 20%;
     animation-delay: -5s;
@@ -74,14 +77,16 @@
     font-weight: 800;
     letter-spacing: -0.03em;
     margin-bottom: 0.5rem;
-    background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.7) 100%);
+    color: var(--text-primary);
+    background: linear-gradient(135deg, var(--text-primary) 0%, var(--text-secondary) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
 }
 
 .logoIcon {
-    -webkit-text-fill-color: #6366f1;
+    color: var(--accent);
+    -webkit-text-fill-color: var(--accent);
     margin-right: 0.5rem;
 }
 
@@ -105,8 +110,8 @@
     align-items: center;
     gap: 0.75rem;
     padding: 1.5rem 1rem;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: var(--card-bg);
+    border: 1px solid var(--border);
     border-radius: 16px;
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -125,8 +130,8 @@
 
 .userCard:hover {
     transform: translateY(-4px);
-    border-color: rgba(255, 255, 255, 0.15);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+    border-color: var(--accent);
+    box-shadow: var(--shadow);
 }
 
 .userCard:hover::before {
@@ -135,6 +140,13 @@
 
 .userCard:active {
     transform: translateY(-1px);
+}
+
+.disabledCard {
+    opacity: 0.4;
+    filter: grayscale(0.8);
+    cursor: not-allowed;
+    pointer-events: none;
 }
 
 .avatar {
@@ -149,7 +161,7 @@
     color: white;
     position: relative;
     z-index: 1;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
@@ -170,4 +182,63 @@
     color: var(--text-secondary);
     font-size: 0.8rem;
     opacity: 0.6;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 600px) {
+    .wrapper {
+        padding: 1.5rem 1rem;
+    }
+
+    .logo {
+        font-size: 1.8rem;
+    }
+
+    .subtitle {
+        font-size: 0.95rem;
+        margin-bottom: 2rem;
+    }
+
+    .usersGrid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+    }
+
+    .userCard {
+        padding: 1.25rem 0.75rem;
+    }
+
+    .avatar {
+        width: 48px;
+        height: 48px;
+        font-size: 1.25rem;
+    }
+
+    .userName {
+        font-size: 0.85rem;
+    }
+
+    .orb {
+        filter: blur(40px);
+        opacity: 0.2;
+    }
+}
+
+@media (max-width: 400px) {
+    .usersGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .userCard {
+        flex-direction: row;
+        padding: 0.85rem 1rem;
+        gap: 1rem;
+        text-align: left;
+    }
+
+    .avatar {
+        width: 42px;
+        height: 42px;
+        margin: 0;
+    }
 }

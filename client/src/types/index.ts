@@ -8,8 +8,19 @@ export interface Task {
     orderKey: string;
     version: number;
     lockedBy: string | null;
+    lastModifiedBy: string | null;
     createdAt: string;
     updatedAt: string;
+}
+
+export interface HistoryLog {
+    id: string;
+    action: string;
+    taskId: string;
+    taskTitle: string;
+    userId: string;
+    details: string | null;
+    timestamp: string;
 }
 
 export interface UserInfo {

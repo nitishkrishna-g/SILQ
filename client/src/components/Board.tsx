@@ -8,6 +8,9 @@ import { generateKeyBefore, generateKeyAfter, generateKeyBetween } from '@/lib/f
 import { DEFAULT_USERS } from '@/lib/userIdentity';
 import TaskCard from './TaskCard';
 import CreateTaskModal from './CreateTaskModal';
+import HistoryPanel from './HistoryPanel';
+import Starfield from './Starfield';
+import GridParallax from './GridParallax';
 import styles from './Board.module.css';
 
 function getColumnTasks(tasks: Task[], status: TaskStatus): Task[] {
@@ -16,18 +19,109 @@ function getColumnTasks(tasks: Task[], status: TaskStatus): Task[] {
         .sort((a, b) => a.orderKey.localeCompare(b.orderKey));
 }
 
+interface NavItemsProps {
+    theme: 'light' | 'dark';
+    toggleTheme: () => void;
+    isForcedOffline: boolean;
+    currentUser: any;
+    logout?: () => void;
+    onlineUserIds: Set<string>;
+    onlineCount: number;
+    onAction: () => void;
+    onHistoryOpen: () => void;
+}
+
+function NavItems({ theme, toggleTheme, isForcedOffline, currentUser, logout, onlineUserIds, onlineCount, onAction, onHistoryOpen }: NavItemsProps) {
+    return (
+        <>
+            {/* Offline Toggle */}
+            <button
+                className={`${styles.toggleOfflineBtn} ${isForcedOffline ? styles.toggleForced : ''}`}
+                onClick={() => {
+                    useTaskStore.getState().toggleForcedOffline();
+                    onAction();
+                }}
+                title={isForcedOffline ? 'Go Online' : 'Simulate Offline'}
+            >
+                {isForcedOffline ? '🌐 Go Online' : '🔌 Go Offline'}
+            </button>
+
+            {/* History Toggle */}
+            <button
+                className={styles.historyToggle}
+                onClick={() => {
+                    onHistoryOpen();
+                    onAction();
+                }}
+                title="View Activity History"
+            >
+                🕒 <span className={styles.historyText}>History</span>
+            </button>
+
+            {/* Theme Toggle */}
+            <button
+                className={styles.themeToggle}
+                onClick={() => {
+                    toggleTheme();
+                    onAction();
+                }}
+                title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+            >
+                {theme === 'light' ? '🌙' : '☀️'}
+            </button>
+
+            {/* All 5 users with online/offline indicators */}
+            <div className={styles.usersGroup}>
+                {DEFAULT_USERS.map((u) => {
+                    const isOnline = onlineUserIds.has(u.userId);
+                    const isMe = currentUser?.userId === u.userId;
+                    return (
+                        <div
+                            key={u.userId}
+                            className={`${styles.userAvatar} ${isOnline ? '' : styles.userOffline} ${isMe ? styles.userMe : ''}`}
+                            style={{ backgroundColor: u.color }}
+                            title={`${u.username}${isOnline ? ' (online)' : ' (offline)'}${isMe ? ' — you' : ''}`}
+                        >
+                            {u.username.charAt(0)}
+                            <span className={`${styles.presenceDot} ${isOnline ? styles.presenceOnline : styles.presenceOffline}`} />
+                        </div>
+                    );
+                })}
+                <span className={styles.userCount}>{onlineCount} online</span>
+            </div>
+
+            {/* Current user + logout */}
+            {currentUser && (
+                <div className={styles.currentUser}>
+                    <span className={styles.currentUsername}>{currentUser.username}</span>
+                    <button className={styles.logoutBtn} onClick={() => {
+                        logout?.();
+                        onAction();
+                    }} title="Sign out">
+                        ↗
+                    </button>
+                </div>
+            )}
+        </>
+    );
+}
+
 export default function Board() {
     const tasks = useTaskStore((s) => s.tasks);
     const isConnected = useTaskStore((s) => s.isConnected);
     const connectedUsers = useTaskStore((s) => s.connectedUsers);
     const currentUser = useTaskStore((s) => s.currentUser);
+    const logout = useTaskStore((s) => s.logout);
+    const theme = useTaskStore((s) => s.theme);
+    const toggleTheme = useTaskStore((s) => s.toggleTheme);
     const offlineQueue = useTaskStore((s) => s.offlineQueue);
     const moveTask = useTaskStore((s) => s.moveTask);
     const isForcedOffline = useTaskStore((s) => s.isForcedOffline);
-    const logout = useTaskStore((s) => s.logout);
 
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [createColumnDefault, setCreateColumnDefault] = useState<TaskStatus>('TODO');
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [showHistoryPanel, setShowHistoryPanel] = useState(false);
 
     // Derive column tasks reactively from the tasks array
     const columnTasksMap = useMemo(() => {
@@ -82,6 +176,8 @@ export default function Board() {
 
     return (
         <div className={styles.wrapper}>
+            {theme === 'dark' && <Starfield starCount={150} />}
+            {theme === 'light' && <GridParallax opacity={1.0} />}
             {/* Header */}
             <header className={styles.header}>
                 <div className={styles.headerLeft}>
@@ -97,47 +193,49 @@ export default function Board() {
                     </div>
                 </div>
 
-                <div className={styles.headerRight}>
-                    {/* Offline Toggle */}
-                    <button
-                        className={`${styles.toggleOfflineBtn} ${isForcedOffline ? styles.toggleForced : ''}`}
-                        onClick={() => useTaskStore.getState().toggleForcedOffline()}
-                        title={isForcedOffline ? 'Go Online' : 'Simulate Offline'}
-                    >
-                        {isForcedOffline ? '🌐 Go Online' : '🔌 Go Offline'}
-                    </button>
+                <button
+                    className={`${styles.hamburger} ${isMenuOpen ? styles.menuOpen : ''}`}
+                    onClick={() => setIsMenuOpen(!isMenuOpen)}
+                    aria-label="Toggle menu"
+                >
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
 
-                    {/* All 5 users with online/offline indicators */}
-                    <div className={styles.usersGroup}>
-                        {DEFAULT_USERS.map((u) => {
-                            const isOnline = onlineUserIds.has(u.userId);
-                            const isMe = currentUser?.userId === u.userId;
-                            return (
-                                <div
-                                    key={u.userId}
-                                    className={`${styles.userAvatar} ${isOnline ? '' : styles.userOffline} ${isMe ? styles.userMe : ''}`}
-                                    style={{ backgroundColor: u.color }}
-                                    title={`${u.username}${isOnline ? ' (online)' : ' (offline)'}${isMe ? ' — you' : ''}`}
-                                >
-                                    {u.username.charAt(0)}
-                                    <span className={`${styles.presenceDot} ${isOnline ? styles.presenceOnline : styles.presenceOffline}`} />
-                                </div>
-                            );
-                        })}
-                        <span className={styles.userCount}>{onlineCount} online</span>
-                    </div>
-
-                    {/* Current user + logout */}
-                    {currentUser && (
-                        <div className={styles.currentUser}>
-                            <span className={styles.currentUsername}>{currentUser.username}</span>
-                            <button className={styles.logoutBtn} onClick={() => logout?.()} title="Sign out">
-                                ↗
-                            </button>
-                        </div>
-                    )}
+                {/* Desktop Menu */}
+                <div className={styles.desktopMenu}>
+                    <NavItems
+                        theme={theme}
+                        toggleTheme={toggleTheme}
+                        isForcedOffline={isForcedOffline}
+                        currentUser={currentUser}
+                        logout={logout || undefined}
+                        onlineUserIds={onlineUserIds}
+                        onlineCount={onlineCount}
+                        onAction={() => { }}
+                        onHistoryOpen={() => setShowHistoryPanel(true)}
+                    />
                 </div>
             </header>
+
+            {/* Mobile Drawer Overlay */}
+            {isMenuOpen && <div className={styles.overlay} onClick={() => setIsMenuOpen(false)} />}
+
+            {/* Mobile Drawer */}
+            <div className={`${styles.mobileDrawer} ${isMenuOpen ? styles.drawerOpen : ''}`}>
+                <NavItems
+                    theme={theme}
+                    toggleTheme={toggleTheme}
+                    isForcedOffline={isForcedOffline}
+                    currentUser={currentUser}
+                    logout={logout || undefined}
+                    onlineUserIds={onlineUserIds}
+                    onlineCount={onlineCount}
+                    onAction={() => setIsMenuOpen(false)}
+                    onHistoryOpen={() => setShowHistoryPanel(true)}
+                />
+            </div>
 
             {/* Offline Banner */}
             {!isConnected && (
@@ -198,10 +296,17 @@ export default function Board() {
                 </div>
             </DragDropContext>
 
-            <CreateTaskModal
-                isOpen={showCreateModal}
-                onClose={() => setShowCreateModal(false)}
-                defaultStatus={createColumnDefault}
+            {showCreateModal && (
+                <CreateTaskModal
+                    isOpen={showCreateModal}
+                    onClose={() => setShowCreateModal(false)}
+                    defaultStatus={createColumnDefault}
+                />
+            )}
+
+            <HistoryPanel
+                isOpen={showHistoryPanel}
+                onClose={() => setShowHistoryPanel(false)}
             />
         </div>
     );

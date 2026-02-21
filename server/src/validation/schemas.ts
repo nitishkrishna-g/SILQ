@@ -6,6 +6,8 @@ export const createTaskSchema = z.object({
     title: z.string().min(1, 'Title is required').max(200, 'Title too long'),
     description: z.string().max(2000, 'Description too long').optional().nullable(),
     status: StatusEnum.optional().default('TODO'),
+    userId: z.string().min(1, 'User ID is required'),
+    username: z.string().min(1, 'Username is required'),
 });
 
 export const updateTaskSchema = z.object({
@@ -13,6 +15,8 @@ export const updateTaskSchema = z.object({
     title: z.string().min(1).max(200).optional(),
     description: z.string().max(2000).optional().nullable(),
     version: z.number().int().positive('Version must be a positive integer'),
+    userId: z.string().min(1, 'User ID is required'),
+    username: z.string().min(1, 'Username is required'),
 });
 
 export const moveTaskSchema = z.object({
@@ -20,11 +24,15 @@ export const moveTaskSchema = z.object({
     status: StatusEnum,
     orderKey: z.string().min(1, 'Order key is required'),
     version: z.number().int().positive('Version must be a positive integer'),
+    userId: z.string().min(1, 'User ID is required'),
+    username: z.string().min(1, 'Username is required'),
 });
 
 export const deleteTaskSchema = z.object({
     id: z.string().uuid('Invalid task ID'),
     version: z.number().int().positive('Version must be a positive integer'),
+    userId: z.string().min(1, 'User ID is required'),
+    username: z.string().min(1, 'Username is required'),
 });
 
 export const lockTaskSchema = z.object({

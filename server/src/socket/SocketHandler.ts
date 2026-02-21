@@ -1,6 +1,7 @@
 import { Server, Socket } from 'socket.io';
 import { taskService } from '../services/TaskService';
 import { presenceService } from '../services/PresenceService';
+import { historyService } from '../services/HistoryService';
 import {
     createTaskSchema,
     updateTaskSchema,
@@ -33,8 +34,9 @@ export function setupSocketHandlers(io: Server): void {
             }
 
             try {
-                const task = await taskService.createTask(parsed.data);
+                const { task, log } = await taskService.createTask(parsed.data);
                 io.emit('TASK_CREATED', task);
+                if (log) io.emit('HISTORY_ADDED', log);
             } catch (err) {
                 socket.emit('ERROR', { event: 'TASK_CREATE', message: 'Failed to create task' });
             }
@@ -49,7 +51,7 @@ export function setupSocketHandlers(io: Server): void {
             }
 
             try {
-                const { task, conflict } = await taskService.updateTask(parsed.data);
+                const { task, conflict, log } = await taskService.updateTask(parsed.data);
 
                 if (conflict) {
                     socket.emit('CONFLICT_UPDATE_REJECTED', {
@@ -62,6 +64,7 @@ export function setupSocketHandlers(io: Server): void {
                 }
 
                 io.emit('TASK_UPDATED', task);
+                if (log) io.emit('HISTORY_ADDED', log);
             } catch (err) {
                 socket.emit('ERROR', { event: 'TASK_UPDATE', message: 'Failed to update task' });
             }
@@ -76,7 +79,7 @@ export function setupSocketHandlers(io: Server): void {
             }
 
             try {
-                const { task, conflict } = await taskService.moveTask(parsed.data);
+                const { task, conflict, log } = await taskService.moveTask(parsed.data);
 
                 if (conflict) {
                     socket.emit('CONFLICT_MOVE_REJECTED', {
@@ -89,6 +92,7 @@ export function setupSocketHandlers(io: Server): void {
                 }
 
                 io.emit('TASK_MOVED', task);
+                if (log) io.emit('HISTORY_ADDED', log);
             } catch (err) {
                 socket.emit('ERROR', { event: 'TASK_MOVE', message: 'Failed to move task' });
             }
@@ -103,7 +107,7 @@ export function setupSocketHandlers(io: Server): void {
             }
 
             try {
-                const { success, conflict } = await taskService.deleteTask(parsed.data);
+                const { success, conflict, log } = await taskService.deleteTask(parsed.data);
 
                 if (conflict) {
                     socket.emit('CONFLICT_DELETE_REJECTED', {
@@ -116,6 +120,7 @@ export function setupSocketHandlers(io: Server): void {
                 }
 
                 io.emit('TASK_DELETED', { id: parsed.data.id });
+                if (log) io.emit('HISTORY_ADDED', log);
             } catch (err) {
                 socket.emit('ERROR', { event: 'TASK_DELETE', message: 'Failed to delete task' });
             }
@@ -172,7 +177,10 @@ export function setupSocketHandlers(io: Server): void {
         socket.on('REQUEST_SYNC', async () => {
             try {
                 const tasks = await taskService.getAllTasks();
+                const historyLogs = await historyService.getRecentLogs(50);
+
                 socket.emit('TASKS_SYNC', tasks);
+                socket.emit('HISTORY_SYNC', historyLogs);
             } catch (err) {
                 socket.emit('ERROR', { event: 'REQUEST_SYNC', message: 'Failed to sync tasks' });
             }
@@ -191,7 +199,12 @@ export function setupSocketHandlers(io: Server): void {
                     // Unlock any tasks this user had locked ONLY if they have no other tabs open
                     await taskService.unlockAllByUser(userId);
                     io.emit('USER_DISCONNECTED', { userId });
-                    console.log(`[Socket] User offline (last tab closed): ${userId}`);
+
+                    // Force a full task sync for remaining clients so they see the unlocked states immediately
+                    const tasks = await taskService.getAllTasks();
+                    io.emit('TASKS_SYNC', tasks);
+
+                    console.log(`[Socket] User offline (last tab closed): ${userId}, unlocked their tasks`);
                 } else {
                     console.log(`[Socket] Tab closed for user: ${userId} (still online in other tabs)`);
                 }

@@ -15,15 +15,29 @@ enum Status {
 }
 
 model Task {
-  id          String   @id @default(uuid())
-  title       String
-  description String?
-  status      Status   @default(TODO)
-  orderKey    String
-  version     Int      @default(1)
-  lockedBy    String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             String   @id @default(uuid())
+  title          String
+  description    String?
+  status         Status   @default(TODO)
+  orderKey       String
+  version        Int      @default(1)
+  lockedBy       String?
+  lastModifiedBy String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   @@index([status, orderKey])
+}
+
+model HistoryLog {
+  id         String   @id @default(uuid())
+  action     String   // "CREATE", "UPDATE", "MOVE", "DELETE"
+  taskId     String
+  taskTitle  String
+  userId     String
+  details    String?
+  timestamp  DateTime @default(now())
+
+  @@index([timestamp(sort: Desc)])
+  @@index([taskId])
 }

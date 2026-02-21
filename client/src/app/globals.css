@@ -1,16 +1,41 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 :root {
-  --bg: #0d0f17;
+  --bg: #0b0d11;
   --surface: rgba(255, 255, 255, 0.02);
+  --surface-hover: rgba(255, 255, 255, 0.06);
   --border: rgba(255, 255, 255, 0.06);
   --text-primary: rgba(255, 255, 255, 0.92);
-  --text-secondary: rgba(255, 255, 255, 0.5);
+  --text-secondary: rgba(255, 255, 255, 0.45);
   --accent: #6366f1;
-  --accent-hover: #5558e6;
-  --success: #22c55e;
+  --accent-hover: #4f46e5;
+  --success: #10b981;
   --warning: #f59e0b;
   --danger: #ef4444;
+  --header-bg: rgba(11, 13, 17, 0.8);
+  --card-bg: rgba(255, 255, 255, 0.03);
+  --column-bg: rgba(255, 255, 255, 0.015);
+  --input-bg: rgba(255, 255, 255, 0.03);
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.light-mode {
+  --bg: #f8fafc;
+  --surface: rgba(0, 0, 0, 0.02);
+  --surface-hover: rgba(0, 0, 0, 0.05);
+  --border: rgba(0, 0, 0, 0.08);
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --accent: #4f46e5;
+  --accent-hover: #4338ca;
+  --success: #059669;
+  --warning: #d97706;
+  --danger: #dc2626;
+  --header-bg: rgba(255, 255, 255, 0.85);
+  --card-bg: #ffffff;
+  --column-bg: rgba(255, 255, 255, 0.95);
+  --input-bg: rgba(0, 0, 0, 0.01);
+  --shadow: 0 4px 25px rgba(0, 0, 0, 0.08);
 }
 
 *,
@@ -43,8 +68,13 @@ body::before {
     radial-gradient(ellipse 600px 400px at 10% 20%, rgba(99, 102, 241, 0.06) 0%, transparent 100%),
     radial-gradient(ellipse 500px 300px at 80% 70%, rgba(139, 92, 246, 0.04) 0%, transparent 100%),
     radial-gradient(ellipse 400px 250px at 50% 50%, rgba(6, 182, 212, 0.03) 0%, transparent 100%);
+  transition: opacity 0.5s ease;
   pointer-events: none;
   z-index: 0;
+}
+
+.light-mode body::before {
+  opacity: 0.15;
 }
 
 #__next,

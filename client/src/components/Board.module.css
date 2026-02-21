@@ -1,8 +1,9 @@
 .wrapper {
     min-height: 100vh;
-    background: #0d0f17;
-    color: white;
+    background: var(--bg);
+    color: var(--text-primary);
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    transition: background 0.3s ease, color 0.3s ease;
 }
 
 /* ===== Header ===== */
@@ -11,68 +12,70 @@
     justify-content: space-between;
     align-items: center;
     padding: 16px 32px;
-    background: rgba(13, 15, 23, 0.8);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    background: var(--header-bg);
+    border-bottom: 1px solid var(--border);
     backdrop-filter: blur(12px);
     position: sticky;
     top: 0;
-    z-index: 50;
+    z-index: 100;
+    transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 .headerLeft {
     display: flex;
     align-items: center;
     gap: 20px;
+    z-index: 102;
 }
 
-.headerRight {
+.desktopMenu {
     display: flex;
     align-items: center;
-    gap: 20px;
+    gap: 24px;
 }
 
 .logo {
-    font-size: 1.2rem;
+    font-size: 1.25rem;
     font-weight: 700;
-    color: white;
+    color: var(--text-primary);
     margin: 0;
     display: flex;
     align-items: center;
-    gap: 8px;
-    letter-spacing: -0.2px;
+    gap: 10px;
+    letter-spacing: -0.02em;
 }
 
 .logoIcon {
-    color: #6366f1;
-    font-size: 1.1rem;
+    color: var(--accent);
+    font-size: 1.2rem;
 }
 
 .connectionStatus {
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 4px 12px;
+    padding: 6px 14px;
     border-radius: 20px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: var(--surface);
+    border: 1px solid var(--border);
 }
 
 .statusDot {
-    width: 7px;
-    height: 7px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
     flex-shrink: 0;
 }
 
 .statusDot.connected {
-    background: #22c55e;
-    box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+    background: var(--success);
+    box-shadow: 0 0 10px var(--success);
     animation: pulse 2s ease infinite;
 }
 
 .statusDot.disconnected {
-    background: #ef4444;
-    box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+    background: var(--danger);
+    box-shadow: 0 0 10px var(--danger);
 }
 
 @keyframes pulse {
@@ -80,267 +83,322 @@
     0%,
     100% {
         opacity: 1;
+        transform: scale(1);
     }
 
     50% {
-        opacity: 0.5;
+        opacity: 0.6;
+        transform: scale(1.1);
     }
 }
 
 .statusText {
-    font-size: 0.72rem;
-    color: rgba(255, 255, 255, 0.5);
-    font-weight: 500;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-weight: 600;
 }
 
-/* Users */
+/* Hamburger Menu Toggle */
+.hamburger {
+    display: none;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 26px;
+    height: 20px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    z-index: 1001;
+    /* Above mobile drawer */
+    transition: transform 0.3s ease;
+}
+
+.hamburger span {
+    width: 100%;
+    height: 2px;
+    background: var(--text-primary);
+    border-radius: 4px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hamburger.menuOpen span:nth-child(1) {
+    transform: translateY(9px) rotate(45deg);
+}
+
+.hamburger.menuOpen span:nth-child(2) {
+    opacity: 0;
+}
+
+.hamburger.menuOpen span:nth-child(3) {
+    transform: translateY(-9px) rotate(-45deg);
+}
+
+/* Mobile Drawer Overlay */
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    z-index: 98;
+}
+
+/* Mobile Drawer Container */
+.mobileDrawer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    max-width: 300px;
+    background: var(--bg);
+    /* SOLID BACKGROUND */
+    display: flex;
+    flex-direction: column;
+    padding: 100px 32px 40px;
+    gap: 32px;
+    z-index: 99;
+    transform: translateX(100%);
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: -10px 0 50px rgba(0, 0, 0, 0.2);
+    overflow-y: auto;
+}
+
+.mobileDrawer.drawerOpen {
+    transform: translateX(0);
+}
+
 .usersGroup {
     display: flex;
     align-items: center;
-    gap: 0;
+    gap: 10px;
 }
 
 .userCount {
-    font-size: 0.72rem;
-    color: rgba(255, 255, 255, 0.4);
-    margin-left: 10px;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-left: 12px;
+    font-weight: 500;
 }
 
 .currentUser {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 4px 8px 4px 12px;
+    gap: 10px;
+    padding: 6px 10px 6px 16px;
     border-radius: 20px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: var(--surface);
+    border: 1px solid var(--border);
 }
 
 .currentUsername {
-    font-size: 0.78rem;
-    color: rgba(255, 255, 255, 0.7);
-    font-weight: 500;
+    font-size: 0.825rem;
+    color: var(--text-primary);
+    font-weight: 600;
 }
 
 .logoutBtn {
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.5);
-    width: 26px;
-    height: 26px;
+    background: rgba(239, 68, 68, 0.05);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    color: var(--danger);
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    font-size: 0.8rem;
+    font-size: 0.9rem;
     transition: all 0.2s;
 }
 
 .logoutBtn:hover {
-    background: rgba(239, 68, 68, 0.15);
-    color: #ef4444;
-    border-color: rgba(239, 68, 68, 0.3);
+    background: var(--danger);
+    color: white;
 }
 
 .toggleOfflineBtn {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 6px 14px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.7);
+    padding: 8px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
     border-radius: 20px;
-    font-size: 0.75rem;
+    font-size: 0.8rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
 }
 
 .toggleOfflineBtn:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.15);
+    background: var(--border);
 }
 
 .toggleForced {
-    background: rgba(239, 68, 68, 0.1);
-    border-color: rgba(239, 68, 68, 0.3);
-    color: #ef4444;
+    border-color: var(--danger);
+    color: var(--danger);
 }
 
-.toggleForced:hover {
-    background: rgba(239, 68, 68, 0.2);
-    border-color: rgba(239, 68, 68, 0.4);
-}
-
-/* Presence indicators */
 .userAvatar {
-    width: 30px;
-    height: 30px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.72rem;
+    font-size: 0.75rem;
     font-weight: 700;
     color: white;
-    border: 2px solid #0d0f17;
-    margin-left: -8px;
-    cursor: default;
+    border: 2px solid var(--header-bg);
     position: relative;
-    transition: opacity 0.3s, filter 0.3s;
-}
-
-.userAvatar:first-child {
-    margin-left: 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .userOffline {
-    opacity: 0.3;
-    filter: grayscale(0.8);
+    opacity: 0.4;
+    filter: grayscale(0.5);
 }
 
 .userMe {
-    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.4);
+    box-shadow: 0 0 0 2px var(--accent);
 }
 
 .presenceDot {
     position: absolute;
-    bottom: -1px;
-    right: -1px;
-    width: 9px;
-    height: 9px;
+    bottom: 0;
+    right: 0;
+    width: 10px;
+    height: 10px;
     border-radius: 50%;
-    border: 2px solid #0d0f17;
+    border: 2px solid var(--bg);
 }
 
 .presenceOnline {
-    background: #22c55e;
-    box-shadow: 0 0 6px rgba(34, 197, 94, 0.5);
+    background: var(--success);
 }
 
 .presenceOffline {
-    background: #4b5563;
+    background: var(--text-secondary);
 }
 
-/* ===== Responsive ===== */
-@media (max-width: 900px) {
-    .board {
-        grid-template-columns: 1fr;
-        padding: 16px;
-    }
-
-    .header {
-        padding: 12px 16px;
-        flex-direction: column;
-        gap: 12px;
-    }
-
-    .headerRight {
-        flex-wrap: wrap;
-        justify-content: center;
-    }
-}
-
+/* Offline Banner */
 .offlineBanner {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    padding: 10px;
-    background: linear-gradient(90deg, rgba(239, 68, 68, 0.12), rgba(245, 158, 11, 0.12));
-    border-bottom: 1px solid rgba(239, 68, 68, 0.2);
+    gap: 10px;
+    padding: 12px;
+    background: rgba(251, 191, 36, 0.1);
+    border-bottom: 1px solid rgba(251, 191, 36, 0.2);
     color: #fbbf24;
     font-size: 0.85rem;
-    font-weight: 500;
-    animation: slideDown 0.3s ease;
+    font-weight: 600;
 }
 
-@keyframes slideDown {
-    from {
-        transform: translateY(-100%);
-        opacity: 0;
-    }
-
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
-}
-
-.offlineIcon {
-    font-size: 1rem;
-}
-
-.queueCount {
-    color: rgba(251, 191, 36, 0.7);
-    font-size: 0.78rem;
-}
-
-/* ===== Board ===== */
+/* ===== Board Grid ===== */
 .board {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-    padding: 24px 32px;
-    min-height: calc(100vh - 130px);
+    gap: 24px;
+    padding: 32px;
+    min-height: calc(100vh - 140px);
     align-items: flex-start;
 }
 
 /* ===== Column ===== */
 .column {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.04);
-    border-radius: 16px;
+    background: var(--column-bg);
+    border: 1px solid var(--border);
+    border-radius: 18px;
     display: flex;
     flex-direction: column;
-    min-height: 200px;
+    min-height: 250px;
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
 }
 
 .columnHeader {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px 16px 12px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    padding: 20px 20px 14px;
 }
 
 .columnTitleGroup {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
 }
 
 .columnAccent {
-    width: 4px;
-    height: 18px;
-    border-radius: 2px;
-    flex-shrink: 0;
+    width: 5px;
+    height: 20px;
+    border-radius: 3px;
 }
 
 .columnTitle {
-    font-size: 0.88rem;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-primary);
     margin: 0;
 }
 
 .taskCount {
-    font-size: 0.7rem;
-    color: rgba(255, 255, 255, 0.3);
-    background: rgba(255, 255, 255, 0.05);
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-weight: 600;
+    font-size: 0.75rem;
+    color: var(--text-primary);
+    background: var(--surface);
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-weight: 800;
 }
 
 .addBtn {
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.4);
-    width: 28px;
-    height: 28px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 1.25rem;
+    transition: all 0.2s;
+}
+
+.addBtn:hover {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+}
+
+.columnBody {
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex: 1;
+    min-height: 100px;
+}
+
+.columnBody.dropTarget {
+    background: rgba(99, 102, 241, 0.03);
+    border-radius: 0 0 18px 18px;
+}
+
+.themeToggle {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    width: 36px;
+    height: 36px;
     border-radius: 8px;
     display: flex;
     align-items: center;
@@ -348,44 +406,103 @@
     cursor: pointer;
     font-size: 1.1rem;
     transition: all 0.2s;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
-.addBtn:hover {
-    background: rgba(99, 102, 241, 0.15);
-    color: #6366f1;
-    border-color: rgba(99, 102, 241, 0.3);
+.themeToggle:hover {
+    background: var(--surface-hover);
+    transform: translateY(-1px);
 }
 
-.columnBody {
-    padding: 8px 10px;
+.historyToggle {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    height: 36px;
+    padding: 0 12px;
+    border-radius: 8px;
     display: flex;
-    flex-direction: column;
-    gap: 8px;
-    flex: 1;
-    min-height: 60px;
-    border-radius: 0 0 16px 16px;
-    transition: background 0.2s;
-}
-
-.columnBody.dropTarget {
-    background: rgba(99, 102, 241, 0.05);
-    border: 1px dashed rgba(99, 102, 241, 0.2);
-    border-top: none;
-    border-radius: 0 0 16px 16px;
-}
-
-.emptyColumn {
-    display: flex;
-    flex-direction: column;
     align-items: center;
-    justify-content: center;
     gap: 6px;
-    padding: 32px 16px;
-    color: rgba(255, 255, 255, 0.15);
-    font-size: 0.82rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.2s;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
-.emptyIcon {
-    font-size: 1.5rem;
-    opacity: 0.4;
+.historyToggle:hover {
+    background: var(--surface-hover);
+    color: var(--text-primary);
+    transform: translateY(-1px);
+}
+
+/* ===== Responsive Magic ===== */
+@media (max-width: 900px) {
+    .board {
+        grid-template-columns: 1fr;
+        padding: 24px 16px;
+    }
+}
+
+@media (max-width: 768px) {
+    .hamburger {
+        display: flex;
+    }
+
+    .header {
+        padding: 12px 20px;
+    }
+
+    .desktopMenu {
+        display: none;
+    }
+
+    .mobileDrawer {
+        display: flex;
+    }
+
+    .usersGroup {
+        flex-direction: row;
+        align-items: center;
+        gap: 0;
+    }
+
+    .userAvatar {
+        margin-left: -12px;
+        width: 40px;
+        height: 40px;
+        font-size: 0.9rem;
+    }
+
+    .userAvatar:first-child {
+        margin-left: 0;
+    }
+
+    .userCount {
+        margin-left: 12px;
+        font-size: 0.85rem;
+    }
+
+    .currentUser {
+        width: 100%;
+        justify-content: space-between;
+        padding: 12px 20px;
+        flex-direction: row;
+        align-items: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .logo {
+        font-size: 1.1rem;
+    }
+
+    .connectionStatus {
+        display: none;
+    }
+
+    .mobileDrawer {
+        max-width: 100%;
+    }
 }

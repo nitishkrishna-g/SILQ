@@ -1,19 +1,20 @@
 .card {
-  background: rgba(30, 32, 44, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--card-bg);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 14px 16px;
   cursor: grab;
   transition: all 0.2s ease;
   backdrop-filter: blur(10px);
   position: relative;
+  box-shadow: var(--shadow);
 }
 
 .card:hover {
-  border-color: rgba(255, 255, 255, 0.12);
-  background: rgba(36, 38, 52, 0.9);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  border-color: var(--accent);
+  background: var(--card-bg);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
 }
 
 .card.dragging {
@@ -42,7 +43,7 @@
 .cardTitle {
   font-size: 0.95rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.92);
+  color: var(--text-primary);
   margin: 0;
   line-height: 1.4;
   word-break: break-word;
@@ -50,7 +51,7 @@
 
 .cardDescription {
   font-size: 0.82rem;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--text-secondary);
   margin: 8px 0 0;
   line-height: 1.5;
   word-break: break-word;
@@ -63,11 +64,25 @@
   margin-top: 10px;
 }
 
+.footerLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modifiedBy {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
 .versionBadge {
   font-size: 0.68rem;
-  color: rgba(255, 255, 255, 0.28);
+  color: var(--text-secondary);
   font-family: 'JetBrains Mono', monospace;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface);
   padding: 2px 6px;
   border-radius: 4px;
 }
@@ -82,7 +97,7 @@
 .deleteBtn {
   background: none;
   border: none;
-  color: rgba(255, 255, 255, 0.2);
+  color: var(--text-secondary);
   cursor: pointer;
   font-size: 0.85rem;
   padding: 2px 6px;
@@ -92,7 +107,7 @@
 }
 
 .deleteBtn:hover {
-  color: #ef4444;
+  color: var(--danger);
   background: rgba(239, 68, 68, 0.1);
 }
 
@@ -104,11 +119,11 @@
 }
 
 .editInput {
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(99, 102, 241, 0.4);
+  background: var(--input-bg);
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 8px 12px;
-  color: white;
+  color: var(--text-primary);
   font-size: 0.9rem;
   font-weight: 600;
   outline: none;
@@ -116,15 +131,15 @@
 }
 
 .editInput:focus {
-  border-color: #6366f1;
+  border-color: var(--accent);
 }
 
 .editTextarea {
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(99, 102, 241, 0.3);
+  background: var(--input-bg);
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 8px 12px;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--text-primary);
   font-size: 0.82rem;
   outline: none;
   resize: vertical;
@@ -134,7 +149,7 @@
 }
 
 .editTextarea:focus {
-  border-color: #6366f1;
+  border-color: var(--accent);
 }
 
 .editActions {
@@ -144,7 +159,7 @@
 }
 
 .saveBtn {
-  background: #6366f1;
+  background: var(--accent);
   color: white;
   border: none;
   padding: 5px 14px;
@@ -156,13 +171,13 @@
 }
 
 .saveBtn:hover {
-  background: #5558e6;
+  background: var(--accent-hover);
 }
 
 .cancelBtn {
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
   padding: 5px 14px;
   border-radius: 6px;
   font-size: 0.78rem;
@@ -171,6 +186,60 @@
 }
 
 .cancelBtn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
+  background: var(--border);
+  color: var(--text-primary);
+}
+
+/* Status-based backgrounds */
+.cardTodo {
+  background: linear-gradient(rgba(59, 130, 246, 0.04), rgba(59, 130, 246, 0.04)), var(--card-bg);
+  border-color: rgba(59, 130, 246, 0.2);
+}
+
+.card.cardTodo:hover {
+  border-color: rgba(59, 130, 246, 0.4);
+  background: linear-gradient(rgba(59, 130, 246, 0.06), rgba(59, 130, 246, 0.06)), var(--card-bg);
+}
+
+.cardInProgress {
+  background: linear-gradient(rgba(245, 158, 11, 0.04), rgba(245, 158, 11, 0.04)), var(--card-bg);
+  border-color: rgba(245, 158, 11, 0.2);
+}
+
+.card.cardInProgress:hover {
+  border-color: rgba(245, 158, 11, 0.4);
+  background: linear-gradient(rgba(245, 158, 11, 0.06), rgba(245, 158, 11, 0.06)), var(--card-bg);
+}
+
+.cardDone {
+  background: linear-gradient(rgba(34, 197, 94, 0.04), rgba(34, 197, 94, 0.04)), var(--card-bg);
+  border-color: rgba(34, 197, 94, 0.2);
+}
+
+.card.cardDone:hover {
+  border-color: rgba(34, 197, 94, 0.4);
+  background: linear-gradient(rgba(34, 197, 94, 0.06), rgba(34, 197, 94, 0.06)), var(--card-bg);
+}
+
+/* Spotlight effect */
+.spotlight {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 0;
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.card:hover .spotlight {
+  opacity: 1;
+}
+
+.contentWrapper {
+  position: relative;
+  z-index: 1;
 }

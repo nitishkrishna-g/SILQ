@@ -1,7 +1,22 @@
 import { Router, Request, Response } from 'express';
 import { taskService } from '../services/TaskService';
+import { presenceService } from '../services/PresenceService';
 
 const router = Router();
+
+/**
+ * GET /users/online
+ * Returns a list of currently online users.
+ */
+router.get('/users/online', (_req: Request, res: Response) => {
+    try {
+        const users = presenceService.getConnectedUsers();
+        res.json({ success: true, users });
+    } catch (error) {
+        console.error('[REST] Failed to fetch online users:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch online users' });
+    }
+});
 
 /**
  * GET /tasks
