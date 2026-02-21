@@ -101,3 +101,13 @@ graph TD
 ```
 
 **Key pattern:** The Board uses individual Zustand selectors (`useTaskStore(s => s.tasks)`) instead of destructuring, ensuring React re-renders precisely when data changes. Column tasks are derived via `useMemo`.
+
+---
+
+## 7. Deployment Architecture
+
+The application is deployed across two separate platforms:
+- **Frontend**: Hosted on Vercel at `https://silq.vercel.app/`
+- **Backend & Database**: Hosted on Render (with managed PostgreSQL) at `https://silq.onrender.com/`
+
+The frontend communicates with the backend via REST for initial loads and `Socket.IO` for real-time synchronization. Cross-Origin Resource Sharing (CORS) is explicitly configured on the backend to accept WebSocket connections from the Vercel hosted client.

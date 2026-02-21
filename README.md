@@ -105,8 +105,9 @@ See [DESIGN.md](./DESIGN.md) for details on:
 
 ## Deployment
 
-### Live URL
-[🚀 View the Live Kanban Board](https://silq-kanban.render.com) (Placeholder - Replace with your actual URL)
+### Live URLs
+- **Frontend (Vercel):** [https://silq.vercel.app/](https://silq.vercel.app/)
+- **Backend (Render):** [https://silq.onrender.com/](https://silq.onrender.com/)
 
 ### Deployment Instructions
 
