@@ -17,14 +17,8 @@ interface TaskStore {
     historyLogs: HistoryLog[];
     currentUser: UserInfo | null;
     logout: (() => void) | null;
-    theme: 'light' | 'dark';
-
-    // Actions
-    setTasks: (tasks: Task[]) => void;
-    setConnected: (connected: boolean) => void;
     setCurrentUser: (user: UserInfo) => void;
     setConnectedUsers: (users: UserInfo[]) => void;
-    toggleTheme: () => void;
 
     // Task CRUD (optimistic)
     createTask: (title: string, description: string | null, status?: TaskStatus) => void;
@@ -70,16 +64,14 @@ export const useTaskStore = create<TaskStore>()(
             lockMap: new Map(),
             historyLogs: [],
             currentUser: null,
+            currentUser: null,
             logout: null,
             isForcedOffline: false,
-            theme: 'dark',
 
             setTasks: (tasks) => set({ tasks }),
             setConnected: (connected) => set({ isConnected: connected }),
             setCurrentUser: (user) => set({ currentUser: user }),
             setConnectedUsers: (users) => set({ connectedUsers: users }),
-
-            toggleTheme: () => set((state) => ({ theme: state.theme === 'light' ? 'dark' : 'light' })),
 
             toggleForcedOffline: () => set((state) => ({ isForcedOffline: !state.isForcedOffline })),
 
@@ -373,7 +365,7 @@ export const useTaskStore = create<TaskStore>()(
             getTasksByStatus: (status) => {
                 return get()
                     .tasks.filter((t) => t.status === status)
-                    .sort((a, b) => a.orderKey.localeCompare(b.orderKey));
+                    .sort((a, b) => a.orderKey < b.orderKey ? -1 : a.orderKey > b.orderKey ? 1 : 0);
             },
 
             getOrderKeyForPosition: (status, index) => {
@@ -396,7 +388,6 @@ export const useTaskStore = create<TaskStore>()(
                 tasks: state.tasks,
                 offlineQueue: state.offlineQueue,
                 currentUser: state.currentUser,
-                theme: state.theme,
             }),
         }
     )

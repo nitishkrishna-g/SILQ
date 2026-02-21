@@ -8,6 +8,7 @@ A production-grade Kanban board with real-time collaboration, drag-and-drop, and
 
 - **Real-time sync** — Changes propagate instantly to all connected users via WebSocket
 - **Drag-and-drop** — Move tasks between To Do, In Progress, and Done columns
+- **Dark Mode native** — Built strictly with a sleek dark theme.
 - **Offline Support**: Board remains interactive without network. Actions are queued and replayed automatically.
 - **Manual Offline Toggle**: Use the "🔌 Go Offline" button in the navbar to manually simulate network loss for testing.
 - **Conflict Resolution**: Version-based OCC and task locking to prevent data loss.
