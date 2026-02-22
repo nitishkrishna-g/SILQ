@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import { useTaskStore } from '@/store/taskStore';
 import { getSocket, connectSocket, disconnectSocket } from '@/lib/socket';
 import { logoutUser } from '@/lib/userIdentity';

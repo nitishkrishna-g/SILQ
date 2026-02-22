@@ -2,7 +2,10 @@
 
 A production-grade Kanban board with real-time collaboration, drag-and-drop, and conflict resolution.
 
-![Board Preview](https://img.shields.io/badge/Stack-Next.js%20%2B%20Express%20%2B%20Socket.IO-blue)
+![alt text](image.png)
+![alt text](image-1.png)
+![alt text](image-2.png)
+![alt text](image-3.png)
 
 ## Features
 

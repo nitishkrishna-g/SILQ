@@ -97,7 +97,6 @@ export default function Board() {
     const isConnected = useTaskStore((s) => s.isConnected);
     const connectedUsers = useTaskStore((s) => s.connectedUsers);
     const currentUser = useTaskStore((s) => s.currentUser);
-    const logout = useTaskStore((s) => s.logout);
     const offlineQueue = useTaskStore((s) => s.offlineQueue);
     const moveTask = useTaskStore((s) => s.moveTask);
     const isForcedOffline = useTaskStore((s) => s.isForcedOffline);
@@ -191,7 +190,10 @@ export default function Board() {
                     <NavItems
                         isForcedOffline={isForcedOffline}
                         currentUser={currentUser}
-                        logout={logout || undefined}
+                        logout={() => {
+                            const lg = useTaskStore.getState().logout;
+                            if (lg) lg();
+                        }}
                         onlineUserIds={onlineUserIds}
                         onlineCount={onlineCount}
                         onAction={() => { }}
@@ -208,7 +210,10 @@ export default function Board() {
                 <NavItems
                     isForcedOffline={isForcedOffline}
                     currentUser={currentUser}
-                    logout={logout || undefined}
+                    logout={() => {
+                        const lg = useTaskStore.getState().logout;
+                        if (lg) lg();
+                    }}
                     onlineUserIds={onlineUserIds}
                     onlineCount={onlineCount}
                     onAction={() => setIsMenuOpen(false)}

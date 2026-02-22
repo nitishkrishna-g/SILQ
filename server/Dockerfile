@@ -1,13 +1,15 @@
 # Build stage
-FROM node:18-alpine3.16 AS builder
+FROM node:20 AS builder
 
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
 
-# Install OpenSSL (required for Prisma on Alpine) and dependencies
-RUN apk add --no-cache openssl
+# Copy Prisma schema early for postinstall generate hook
+COPY prisma ./prisma
+
+# Install dependencies
 RUN npm install && npm install -g typescript
 
 # Copy server code
@@ -17,27 +19,31 @@ COPY . .
 RUN npm run build
 
 # Production stage
-FROM node:18-alpine3.16
+FROM node:20
 
 WORKDIR /app
 
 # Copy package files and install only production dependencies
 COPY package*.json ./
+
+# Copy Prisma schema before installing dependencies so postinstall `prisma generate` succeeds
+COPY --from=builder /app/prisma ./prisma
+
 RUN npm ci --omit=dev
 
-# Copy Prisma schema and generated client from builder
+# Copy Prisma schema
 COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/client
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/prisma/build/index.js ./node_modules/prisma/build/index.js 
+
+# Note: npm ci --omit=dev combined with postinstall in package.json
+# automatically generates the Prisma client for this production alpine image.
+# We do not need to copy the @prisma/client folder from the builder, 
+# as that might contain binaries meant for the builder's OS/libc rather than production's.
 
 # Copy built artifacts from builder
 COPY --from=builder /app/dist ./dist
 
-# Start the server with db push directly using Node to avoid Symlink CMD CRLF issues
-CMD node node_modules/prisma/build/index.js db push && node dist/index.js
+# Start the server with db push directly using npx
+CMD npx prisma db push && node dist/index.js
 
 # Expose the API and WebSocket port
 EXPOSE 3001
-
-# Expose the API and WebSocket port

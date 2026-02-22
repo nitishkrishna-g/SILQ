@@ -25,7 +25,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
                     const ids = new Set(data.users.map((u: UserInfo) => u.userId));
                     setActiveUserIds(ids as Set<string>);
                 }
-            } catch (error) {
+            } catch {
                 // Silently fail if server isn't reachable yet
             }
         };

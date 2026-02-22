@@ -1,0 +1,11 @@
+node_modules
+.next
+.git
+.env
+.github
+*.md
+Dockerfile
+.dockerignore
+lint_output.txt
+lint_final.txt
+lint_final_v2.txt
