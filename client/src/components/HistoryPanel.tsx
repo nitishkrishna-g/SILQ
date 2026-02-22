@@ -34,7 +34,10 @@ export default function HistoryPanel({ isOpen, onClose }: HistoryPanelProps) {
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
-        setMounted(true);
+        const timer = setTimeout(() => {
+            setMounted(true);
+        }, 0);
+        return () => clearTimeout(timer);
     }, []);
 
     if (!isOpen || !mounted) return null;
@@ -60,7 +63,7 @@ export default function HistoryPanel({ isOpen, onClose }: HistoryPanelProps) {
                                         <div className={styles.logHeader}>
                                             <span className={styles.logUser}>{log.userId}</span>
                                             <span className={styles.logAction}>{getActionVerb(log.action)}</span>
-                                            <span className={styles.logTaskTitle}>"{log.taskTitle}"</span>
+                                            <span className={styles.logTaskTitle}>&quot;{log.taskTitle}&quot;</span>
                                         </div>
                                         {log.details && <div className={styles.logDetails}>{log.details}</div>}
                                         <div className={styles.logTime}>

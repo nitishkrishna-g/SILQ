@@ -21,7 +21,10 @@ export default function CreateTaskModal({ isOpen, onClose, defaultStatus = 'TODO
     useEffect(() => {
         if (isOpen && titleRef.current) {
             titleRef.current.focus();
-            setStatus(defaultStatus);
+            const timer = setTimeout(() => {
+                setStatus(defaultStatus);
+            }, 0);
+            return () => clearTimeout(timer);
         }
     }, [isOpen, defaultStatus]);
 

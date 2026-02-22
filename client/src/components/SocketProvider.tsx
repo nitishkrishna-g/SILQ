@@ -4,7 +4,7 @@ import React, { useEffect, useRef } from 'react';
 import { useTaskStore } from '@/store/taskStore';
 import { getSocket, connectSocket, disconnectSocket } from '@/lib/socket';
 import { logoutUser } from '@/lib/userIdentity';
-import { UserInfo } from '@/types';
+import { UserInfo, Task, HistoryLog, LockInfo } from '@/types';
 import toast from 'react-hot-toast';
 
 interface SocketProviderProps {
@@ -73,13 +73,13 @@ export default function SocketProvider({ children, user, onLogout }: SocketProvi
         socket.on('connect_error', onConnectError);
 
         // ------ Task events ------
-        const onTasksSync = (tasks: any) => store.onTasksSync(tasks);
-        const onTaskCreated = (task: any) => store.onTaskCreated(task);
-        const onTaskUpdated = (task: any) => store.onTaskUpdated(task);
-        const onTaskMoved = (task: any) => store.onTaskMoved(task);
-        const onTaskDeleted = (data: any) => store.onTaskDeleted(data.id);
-        const onHistorySync = (logs: any) => store.onHistorySync(logs);
-        const onHistoryAdded = (log: any) => store.onHistoryAdded(log);
+        const onTasksSync = (tasks: Task[]) => store.onTasksSync(tasks);
+        const onTaskCreated = (task: Task) => store.onTaskCreated(task);
+        const onTaskUpdated = (task: Task) => store.onTaskUpdated(task);
+        const onTaskMoved = (task: Task) => store.onTaskMoved(task);
+        const onTaskDeleted = (data: { id: string }) => store.onTaskDeleted(data.id);
+        const onHistorySync = (logs: HistoryLog[]) => store.onHistorySync(logs);
+        const onHistoryAdded = (log: HistoryLog) => store.onHistoryAdded(log);
 
         socket.on('TASKS_SYNC', onTasksSync);
         socket.on('TASK_CREATED', onTaskCreated);
@@ -90,17 +90,17 @@ export default function SocketProvider({ children, user, onLogout }: SocketProvi
         socket.on('HISTORY_ADDED', onHistoryAdded);
 
         // ------ Conflict events ------
-        const onConflictMove = (data: any) => {
+        const onConflictMove = (data: { id: string, message?: string }) => {
             toast.error(data.message || 'Move conflict: task was already moved by another user.');
-            store.onConflictRejected(data.id);
+            store.onConflictRejected();
         };
-        const onConflictUpdate = (data: any) => {
+        const onConflictUpdate = (data: { id: string, message?: string }) => {
             toast.error(data.message || 'Update conflict: task was modified by another user.');
-            store.onConflictRejected(data.id);
+            store.onConflictRejected();
         };
-        const onConflictDelete = (data: any) => {
+        const onConflictDelete = (data: { id: string, message?: string }) => {
             toast.error(data.message || 'Delete conflict: task was modified before deletion.');
-            store.onConflictRejected(data.id);
+            store.onConflictRejected();
         };
 
         socket.on('CONFLICT_MOVE_REJECTED', onConflictMove);
@@ -108,17 +108,17 @@ export default function SocketProvider({ children, user, onLogout }: SocketProvi
         socket.on('CONFLICT_DELETE_REJECTED', onConflictDelete);
 
         // ------ Presence events ------
-        const onTaskLocked = (data: any) => store.onTaskLocked(data);
-        const onTaskUnlocked = (data: any) => store.onTaskUnlocked(data.id);
-        const onTaskLockRejected = (data: any) => toast.error(data.message || 'Task is being edited by another user.');
+        const onTaskLocked = (data: LockInfo) => store.onTaskLocked(data);
+        const onTaskUnlocked = (data: { id: string }) => store.onTaskUnlocked(data.id);
+        const onTaskLockRejected = (data: { message?: string }) => toast.error(data.message || 'Task is being edited by another user.');
 
         socket.on('TASK_LOCKED', onTaskLocked);
         socket.on('TASK_UNLOCKED', onTaskUnlocked);
         socket.on('TASK_LOCK_REJECTED', onTaskLockRejected);
 
         // ------ User events ------
-        const onUsersUpdated = (users: any) => store.setConnectedUsers(users);
-        const onUserDisconnected = (data: any) => {
+        const onUsersUpdated = (users: UserInfo[]) => store.setConnectedUsers(users);
+        const onUserDisconnected = (data: { userId: string }) => {
             const lockMap = useTaskStore.getState().lockMap;
             lockMap.forEach((lock, taskId) => {
                 if (lock.lockedBy === data.userId) {
@@ -131,7 +131,7 @@ export default function SocketProvider({ children, user, onLogout }: SocketProvi
         socket.on('USER_DISCONNECTED', onUserDisconnected);
 
         // ------ Error events ------
-        const onError = (data: any) => {
+        const onError = (data: { message?: string }) => {
             console.error('[Socket] Error:', data);
             toast.error(data.message || 'An error occurred');
         };

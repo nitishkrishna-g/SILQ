@@ -17,8 +17,12 @@ export default function Home() {
 
   // Check localStorage on mount
   useEffect(() => {
-    setLoggedInUser(getLoggedInUser());
-    setChecked(true);
+    const user: UserInfo | null = getLoggedInUser();
+    const timer = setTimeout(() => {
+      setLoggedInUser(user);
+      setChecked(true);
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   // Don't flash anything until we've checked localStorage
