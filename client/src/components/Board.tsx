@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { DragDropContext, Droppable, DropResult } from '@hello-pangea/dnd';
 import { useTaskStore } from '@/store/taskStore';
-import { Task, TaskStatus, COLUMN_CONFIG } from '@/types';
+import { Task, TaskStatus, COLUMN_CONFIG, UserInfo } from '@/types';
 import { generateKeyBefore, generateKeyAfter, generateKeyBetween } from '@/lib/fractional';
 import { DEFAULT_USERS } from '@/lib/userIdentity';
 import TaskCard from './TaskCard';
@@ -21,7 +21,7 @@ function getColumnTasks(tasks: Task[], status: TaskStatus): Task[] {
 
 interface NavItemsProps {
     isForcedOffline: boolean;
-    currentUser: any;
+    currentUser: UserInfo | null;
     logout?: () => void;
     onlineUserIds: Set<string>;
     onlineCount: number;

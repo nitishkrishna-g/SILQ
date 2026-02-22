@@ -17,9 +17,14 @@ export default function Home() {
 
   // Check localStorage on mount
   useEffect(() => {
-    setLoggedInUser(getLoggedInUser());
-    setChecked(true);
-  }, []);
+    const user = getLoggedInUser();
+    if (user && loggedInUser?.userId !== user.userId) {
+      setLoggedInUser(user);
+    }
+    if (!checked) {
+      setChecked(true);
+    }
+  }, [loggedInUser, checked]);
 
   // Don't flash anything until we've checked localStorage
   if (!checked) return null;
@@ -28,7 +33,7 @@ export default function Home() {
   if (!loggedInUser) {
     return (
       <ErrorBoundary>
-        <LoginPage onLogin={(user) => setLoggedInUser(user)} />
+        <LoginPage onLogin={(user: UserInfo) => setLoggedInUser(user)} />
       </ErrorBoundary>
     );
   }
