@@ -111,3 +111,15 @@ The application is deployed across two separate platforms:
 - **Backend & Database**: Hosted on Render (with managed PostgreSQL) at `https://silq.onrender.com/`
 
 The frontend communicates with the backend via REST for initial loads and `Socket.IO` for real-time synchronization. Cross-Origin Resource Sharing (CORS) is explicitly configured on the backend to accept WebSocket connections from the Vercel hosted client.
+
+---
+
+## 8. Containerization (Docker)
+
+The application is fully containerized using Docker Compose for local development and self-hosting:
+
+- **`silq_db`**: A `postgres:15-alpine` container providing the isolated database.
+- **`silq_server`**: A multi-stage `node:18-alpine` build. It handles the `db push` schema migrations directly on container startup using local execution (`node node_modules/prisma/build/index.js db push`) to safely circumvent Windows CRLF line ending errors originating from host volume mounts.
+- **`silq_client`**: A multi-stage `node:20-alpine` build utilizing `next build` and Next.js standalone mode for a highly decoupled, production-ready frontend presentation.
+
+This approach guarantees a consistent environment architecture and automatically orchestrates the interaction between the Prisma client and the database.
