@@ -7,6 +7,7 @@
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "build": "node node_modules/prisma/build/index.js generate && tsc",
     "start": "node dist/index.js",
+    "postinstall": "node node_modules/prisma/build/index.js generate",
     "prisma:generate": "node node_modules/prisma/build/index.js generate",
     "prisma:migrate": "node node_modules/prisma/build/index.js migrate dev",
     "prisma:push": "node node_modules/prisma/build/index.js db push",
@@ -39,5 +40,8 @@
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.56.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }

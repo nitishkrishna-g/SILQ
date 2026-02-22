@@ -8,7 +8,7 @@ interface StarfieldProps {
 }
 
 export default function Starfield({ starCount = 100 }: StarfieldProps) {
-    const [stars, setStars] = useState<{ x: number; y: number; size: number; opacity: number; depth: number }[]>([]);
+    const [stars, setStars] = useState<{ x: number; y: number; size: number; opacity: number; depth: number; animationDelay: number }[]>([]);
     const containerRef = useRef<HTMLDivElement>(null);
     const requestRef = useRef<number | undefined>(undefined);
     const mousePos = useRef({ x: 0, y: 0 });
@@ -22,8 +22,12 @@ export default function Starfield({ starCount = 100 }: StarfieldProps) {
             size: Math.random() * 2 + 0.5, // 0.5px to 2.5px
             opacity: Math.random() * 0.8 + 0.2,
             depth: Math.random() * 3 + 1, // depth factor for parallax
+            animationDelay: Math.random() * 5,
         }));
-        setStars(newStars);
+        const timer = setTimeout(() => {
+            setStars(newStars);
+        }, 0);
+        return () => clearTimeout(timer);
 
         // Smooth mouse follow logic
         const animate = () => {
@@ -73,7 +77,7 @@ export default function Starfield({ starCount = 100 }: StarfieldProps) {
                             opacity: star.opacity,
                             // Different depths move at different speeds (parallax effect)
                             transform: `translateZ(${star.depth * 10}px)`,
-                            animationDelay: `${Math.random() * 5}s`,
+                            animationDelay: `${star.animationDelay}s`,
                         }}
                     />
                 ))}

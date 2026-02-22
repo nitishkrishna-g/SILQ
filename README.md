@@ -27,6 +27,7 @@ A production-grade Kanban board with real-time collaboration, drag-and-drop, and
 | Database | PostgreSQL (hosted on Render) |
 | ORM | Prisma 5 |
 | Validation | Zod |
+| Containerization | Docker, Docker Compose |
 
 ## Quick Start
 
@@ -34,7 +35,25 @@ A production-grade Kanban board with real-time collaboration, drag-and-drop, and
 - Node.js 18+
 - PostgreSQL database (or a Render instance)
 
-### Backend
+### Running with Docker (Recommended)
+
+The easiest way to run the entire stack (Postgres + Server + Client) is using Docker Compose:
+
+```bash
+# Start all services in the background
+docker-compose up -d
+
+# Stop all services
+docker-compose down
+```
+
+Once running, access the board at [http://localhost:3000](http://localhost:3000).
+
+---
+
+### Running Manually
+
+#### Backend
 
 ```bash
 cd server

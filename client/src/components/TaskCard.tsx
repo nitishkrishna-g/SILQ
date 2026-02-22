@@ -32,8 +32,11 @@ export default function TaskCard({ task, index }: TaskCardProps) {
     // Update local state when task changes from server
     useEffect(() => {
         if (!isEditing) {
-            setEditTitle(task.title);
-            setEditDescription(task.description || '');
+            const timer = setTimeout(() => {
+                setEditTitle(task.title);
+                setEditDescription(task.description || '');
+            }, 0);
+            return () => clearTimeout(timer);
         }
     }, [task.title, task.description, isEditing]);
 
@@ -177,7 +180,7 @@ export default function TaskCard({ task, index }: TaskCardProps) {
                                         <span className={styles.versionBadge}>v{task.version}</span>
                                         {task.lastModifiedBy && (
                                             <span className={styles.modifiedBy} title={`Last modified by ${task.lastModifiedBy}`}>
-                                                Last modified by "{task.lastModifiedBy}"
+                                                Last modified by &quot;{task.lastModifiedBy}&quot;
                                             </span>
                                         )}
                                     </div>

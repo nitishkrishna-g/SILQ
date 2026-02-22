@@ -38,7 +38,7 @@ interface TaskStore {
     onTasksSync: (tasks: Task[]) => void;
     onHistorySync: (logs: HistoryLog[]) => void;
     onHistoryAdded: (log: HistoryLog) => void;
-    onConflictRejected: (id: string) => void;
+    onConflictRejected: () => void;
 
     // Presence
     lockTask: (id: string) => void;
@@ -301,7 +301,7 @@ export const useTaskStore = create<TaskStore>()(
                 }));
             },
 
-            onConflictRejected: (_id) => {
+            onConflictRejected: () => {
                 // Re-sync from server
                 const socket = getSocket();
                 socket.emit('REQUEST_SYNC');
