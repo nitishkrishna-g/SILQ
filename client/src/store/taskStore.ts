@@ -301,7 +301,7 @@ export const useTaskStore = create<TaskStore>()(
                 }));
             },
 
-            onConflictRejected: () => {
+            onConflictRejected: (_id) => {
                 // Re-sync from server
                 const socket = getSocket();
                 socket.emit('REQUEST_SYNC');
