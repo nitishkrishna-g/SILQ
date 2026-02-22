@@ -16,12 +16,10 @@ import styles from './Board.module.css';
 function getColumnTasks(tasks: Task[], status: TaskStatus): Task[] {
     return tasks
         .filter((t) => t.status === status)
-        .sort((a, b) => a.orderKey.localeCompare(b.orderKey));
+        .sort((a, b) => a.orderKey < b.orderKey ? -1 : a.orderKey > b.orderKey ? 1 : 0);
 }
 
 interface NavItemsProps {
-    theme: 'light' | 'dark';
-    toggleTheme: () => void;
     isForcedOffline: boolean;
     currentUser: any;
     logout?: () => void;
@@ -31,7 +29,7 @@ interface NavItemsProps {
     onHistoryOpen: () => void;
 }
 
-function NavItems({ theme, toggleTheme, isForcedOffline, currentUser, logout, onlineUserIds, onlineCount, onAction, onHistoryOpen }: NavItemsProps) {
+function NavItems({ isForcedOffline, currentUser, logout, onlineUserIds, onlineCount, onAction, onHistoryOpen }: NavItemsProps) {
     return (
         <>
             {/* Offline Toggle */}
@@ -58,17 +56,6 @@ function NavItems({ theme, toggleTheme, isForcedOffline, currentUser, logout, on
                 🕒 <span className={styles.historyText}>History</span>
             </button>
 
-            {/* Theme Toggle */}
-            <button
-                className={styles.themeToggle}
-                onClick={() => {
-                    toggleTheme();
-                    onAction();
-                }}
-                title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
-            >
-                {theme === 'light' ? '🌙' : '☀️'}
-            </button>
 
             {/* All 5 users with online/offline indicators */}
             <div className={styles.usersGroup}>
@@ -112,8 +99,6 @@ export default function Board() {
     const connectedUsers = useTaskStore((s) => s.connectedUsers);
     const currentUser = useTaskStore((s) => s.currentUser);
     const logout = useTaskStore((s) => s.logout);
-    const theme = useTaskStore((s) => s.theme);
-    const toggleTheme = useTaskStore((s) => s.toggleTheme);
     const offlineQueue = useTaskStore((s) => s.offlineQueue);
     const moveTask = useTaskStore((s) => s.moveTask);
     const isForcedOffline = useTaskStore((s) => s.isForcedOffline);
@@ -176,8 +161,7 @@ export default function Board() {
 
     return (
         <div className={styles.wrapper}>
-            {theme === 'dark' && <Starfield starCount={150} />}
-            {theme === 'light' && <GridParallax opacity={1.0} />}
+            <Starfield starCount={150} />
             {/* Header */}
             <header className={styles.header}>
                 <div className={styles.headerLeft}>
@@ -206,8 +190,6 @@ export default function Board() {
                 {/* Desktop Menu */}
                 <div className={styles.desktopMenu}>
                     <NavItems
-                        theme={theme}
-                        toggleTheme={toggleTheme}
                         isForcedOffline={isForcedOffline}
                         currentUser={currentUser}
                         logout={logout || undefined}
@@ -225,8 +207,6 @@ export default function Board() {
             {/* Mobile Drawer */}
             <div className={`${styles.mobileDrawer} ${isMenuOpen ? styles.drawerOpen : ''}`}>
                 <NavItems
-                    theme={theme}
-                    toggleTheme={toggleTheme}
                     isForcedOffline={isForcedOffline}
                     currentUser={currentUser}
                     logout={logout || undefined}

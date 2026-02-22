@@ -1,4 +1,4 @@
-import { Task } from '@prisma/client';
+import { Task, HistoryLog } from '@prisma/client';
 import { CreateTaskInput, UpdateTaskInput, MoveTaskInput, DeleteTaskInput, LockTaskInput, UnlockTaskInput } from '../validation/schemas';
 export declare class TaskService {
     /**
@@ -9,7 +9,10 @@ export declare class TaskService {
      * Create a new task.
      * Assigns an orderKey at the bottom of the target column.
      */
-    createTask(input: CreateTaskInput): Promise<Task>;
+    createTask(input: CreateTaskInput): Promise<{
+        task: Task;
+        log: HistoryLog;
+    }>;
     /**
      * Update task fields (title, description).
      * Uses OCC: only updates if version matches.
@@ -18,6 +21,7 @@ export declare class TaskService {
     updateTask(input: UpdateTaskInput): Promise<{
         task: Task | null;
         conflict: boolean;
+        log?: HistoryLog;
     }>;
     /**
      * Move a task to a different column and/or new position.
@@ -26,6 +30,7 @@ export declare class TaskService {
     moveTask(input: MoveTaskInput): Promise<{
         task: Task | null;
         conflict: boolean;
+        log?: HistoryLog;
     }>;
     /**
      * Delete a task. Uses version check for OCC.
@@ -33,6 +38,7 @@ export declare class TaskService {
     deleteTask(input: DeleteTaskInput): Promise<{
         success: boolean;
         conflict: boolean;
+        log?: HistoryLog;
     }>;
     /**
      * Lock a task for editing by a specific user.

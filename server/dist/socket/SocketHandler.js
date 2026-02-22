@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.setupSocketHandlers = setupSocketHandlers;
 const TaskService_1 = require("../services/TaskService");
 const PresenceService_1 = require("../services/PresenceService");
+const HistoryService_1 = require("../services/HistoryService");
 const schemas_1 = require("../validation/schemas");
 function setupSocketHandlers(io) {
     io.on('connection', (socket) => {
@@ -22,8 +23,10 @@ function setupSocketHandlers(io) {
                 return;
             }
             try {
-                const task = await TaskService_1.taskService.createTask(parsed.data);
+                const { task, log } = await TaskService_1.taskService.createTask(parsed.data);
                 io.emit('TASK_CREATED', task);
+                if (log)
+                    io.emit('HISTORY_ADDED', log);
             }
             catch (err) {
                 socket.emit('ERROR', { event: 'TASK_CREATE', message: 'Failed to create task' });
@@ -37,7 +40,7 @@ function setupSocketHandlers(io) {
                 return;
             }
             try {
-                const { task, conflict } = await TaskService_1.taskService.updateTask(parsed.data);
+                const { task, conflict, log } = await TaskService_1.taskService.updateTask(parsed.data);
                 if (conflict) {
                     socket.emit('CONFLICT_UPDATE_REJECTED', {
                         id: parsed.data.id,
@@ -48,6 +51,8 @@ function setupSocketHandlers(io) {
                     return;
                 }
                 io.emit('TASK_UPDATED', task);
+                if (log)
+                    io.emit('HISTORY_ADDED', log);
             }
             catch (err) {
                 socket.emit('ERROR', { event: 'TASK_UPDATE', message: 'Failed to update task' });
@@ -61,7 +66,7 @@ function setupSocketHandlers(io) {
                 return;
             }
             try {
-                const { task, conflict } = await TaskService_1.taskService.moveTask(parsed.data);
+                const { task, conflict, log } = await TaskService_1.taskService.moveTask(parsed.data);
                 if (conflict) {
                     socket.emit('CONFLICT_MOVE_REJECTED', {
                         id: parsed.data.id,
@@ -72,6 +77,8 @@ function setupSocketHandlers(io) {
                     return;
                 }
                 io.emit('TASK_MOVED', task);
+                if (log)
+                    io.emit('HISTORY_ADDED', log);
             }
             catch (err) {
                 socket.emit('ERROR', { event: 'TASK_MOVE', message: 'Failed to move task' });
@@ -85,7 +92,7 @@ function setupSocketHandlers(io) {
                 return;
             }
             try {
-                const { success, conflict } = await TaskService_1.taskService.deleteTask(parsed.data);
+                const { success, conflict, log } = await TaskService_1.taskService.deleteTask(parsed.data);
                 if (conflict) {
                     socket.emit('CONFLICT_DELETE_REJECTED', {
                         id: parsed.data.id,
@@ -96,6 +103,8 @@ function setupSocketHandlers(io) {
                     return;
                 }
                 io.emit('TASK_DELETED', { id: parsed.data.id });
+                if (log)
+                    io.emit('HISTORY_ADDED', log);
             }
             catch (err) {
                 socket.emit('ERROR', { event: 'TASK_DELETE', message: 'Failed to delete task' });
@@ -148,7 +157,9 @@ function setupSocketHandlers(io) {
         socket.on('REQUEST_SYNC', async () => {
             try {
                 const tasks = await TaskService_1.taskService.getAllTasks();
+                const historyLogs = await HistoryService_1.historyService.getRecentLogs(50);
                 socket.emit('TASKS_SYNC', tasks);
+                socket.emit('HISTORY_SYNC', historyLogs);
             }
             catch (err) {
                 socket.emit('ERROR', { event: 'REQUEST_SYNC', message: 'Failed to sync tasks' });
@@ -165,7 +176,10 @@ function setupSocketHandlers(io) {
                     // Unlock any tasks this user had locked ONLY if they have no other tabs open
                     await TaskService_1.taskService.unlockAllByUser(userId);
                     io.emit('USER_DISCONNECTED', { userId });
-                    console.log(`[Socket] User offline (last tab closed): ${userId}`);
+                    // Force a full task sync for remaining clients so they see the unlocked states immediately
+                    const tasks = await TaskService_1.taskService.getAllTasks();
+                    io.emit('TASKS_SYNC', tasks);
+                    console.log(`[Socket] User offline (last tab closed): ${userId}, unlocked their tasks`);
                 }
                 else {
                     console.log(`[Socket] Tab closed for user: ${userId} (still online in other tabs)`);
