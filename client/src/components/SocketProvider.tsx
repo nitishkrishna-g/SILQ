@@ -39,6 +39,7 @@ export default function SocketProvider({ children, user, onLogout }: SocketProvi
             console.log('[Socket] Forced Offline disabled, reconnecting...');
             connectSocket();
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isForcedOffline]);
 
     useEffect(() => {
@@ -165,6 +166,7 @@ export default function SocketProvider({ children, user, onLogout }: SocketProvi
             socket.off('USER_DISCONNECTED', onUserDisconnected);
             socket.off('ERROR', onError);
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user.userId, isForcedOffline]);
 
     return <>{children}</>;
